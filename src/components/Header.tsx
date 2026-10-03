@@ -94,7 +94,7 @@ export const Header: React.FC = () => {
           accessibilityLabel={`Wishlist, ${wishlistCount} items`}
           accessibilityRole="button"
         >
-          <Ionicons name="heart-outline" size={20} color={COLORS.textPrimary} />
+          <Ionicons name={wishlistCount > 0 ? 'heart' : 'heart-outline'} size={20} color={wishlistCount > 0 ? COLORS.discountBadge : COLORS.textPrimary} />
           {wishlistCount > 0 && (
             <View style={styles.badge}>
               <Text style={styles.badgeText}>{wishlistCount > 99 ? '99+' : wishlistCount}</Text>

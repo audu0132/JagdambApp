@@ -369,8 +369,8 @@ export const ProductDetailsScreen: React.FC<ProductDetailsScreenProps> = ({
                 disabled={!product.inStock}
                 activeOpacity={0.8}
               >
-                <Ionicons name="cart" size={18} color={COLORS.textInverse} />
-                <Text style={styles.addCartBtnText}>
+                <Ionicons name="cart" size={18} color={product.inStock ? COLORS.textInverse : COLORS.textMuted} />
+                <Text style={[styles.addCartBtnText, !product.inStock && styles.addCartBtnTextDisabled]}>
                   {cartItem
                     ? language === 'mr'
                       ? `कार्टमध्ये (${cartItem.quantity})`
@@ -791,6 +791,9 @@ const styles = StyleSheet.create({
     color: COLORS.surface,
     fontSize: 14,
     fontWeight: '700',
+  },
+  addCartBtnTextDisabled: {
+    color: COLORS.textMuted,
   },
   fullQuoteBtn: {
     flex: 1,

@@ -110,7 +110,7 @@ export const CartScreen: React.FC = () => {
 
         <TouchableOpacity onPress={handleClearCart} style={styles.clearBtn}>
           <Ionicons name="trash-outline" size={16} color={COLORS.danger} />
-          <Text style={styles.clearBtnText}>{t('clearSearch')}</Text>
+          <Text style={styles.clearBtnText}>{t('clearCart')}</Text>
         </TouchableOpacity>
       </View>
 

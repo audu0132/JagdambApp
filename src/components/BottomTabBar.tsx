@@ -141,7 +141,7 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: COLORS.borderLight,
     paddingTop: 6,
-    paddingBottom: 8,
+    paddingBottom: 10,
     shadowColor: COLORS.shadow,
     shadowOffset: { width: 0, height: -2 },
     shadowOpacity: 0.06,
@@ -198,7 +198,7 @@ const styles = StyleSheet.create({
   },
   activeIndicator: {
     position: 'absolute',
-    bottom: -6,
+    bottom: -8,
     width: 20,
     height: 3,
     borderRadius: RADIUS.full,

@@ -226,7 +226,7 @@ export const LoginAccountScreen: React.FC = () => {
                   style={styles.cancelEditBtn}
                   onPress={() => setIsEditing(false)}
                 >
-                  <Text style={styles.cancelEditText}>{t('clearSearch')}</Text>
+                  <Text style={styles.cancelEditText}>{t('cancelAction')}</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={styles.saveEditBtn}

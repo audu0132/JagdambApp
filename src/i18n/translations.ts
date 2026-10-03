@@ -10,6 +10,8 @@ export const TRANSLATIONS = {
     resultsCount: '{count} equipment found',
     noResults: 'No equipment found matching your search.',
     clearSearch: 'Clear',
+    clearCart: 'Clear Cart',
+    cancelAction: 'Cancel',
 
     // Navigation Tabs
     tabHome: 'Home',
@@ -121,6 +123,8 @@ export const TRANSLATIONS = {
     resultsCount: '{count} उपकरणे सापडली',
     noResults: 'तुमच्या शोधानुसार कोणतेही उपकरण आढळले नाही.',
     clearSearch: 'रद्द करा',
+    clearCart: 'कार्ट रिकामी करा',
+    cancelAction: 'रद्द करा',
 
     // Navigation Tabs
     tabHome: 'मुख्य',
