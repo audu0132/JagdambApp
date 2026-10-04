@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Dimensions } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { router } from 'expo-router';
 import { COLORS, SPACING, RADIUS, TYPOGRAPHY } from '../constants/theme';
 import { useApp } from '../context/AppContext';
 
@@ -53,17 +52,13 @@ const BANNERS: BannerItem[] = [
 ];
 
 export const BannerCarousel: React.FC = () => {
-  const { setSelectedCategory, setActiveTab } = useApp();
+  const { setSelectedCategory } = useApp();
   const [activeIndex, setActiveIndex] = useState(0);
 
   const handleBannerPress = (banner: BannerItem) => {
     if (banner.categoryFilter) {
       setSelectedCategory(banner.categoryFilter);
     }
-    setActiveTab('home');
-    try {
-      router.push('/(tabs)');
-    } catch (_e) {}
   };
 
   return (

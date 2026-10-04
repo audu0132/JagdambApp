@@ -14,7 +14,7 @@ import { router } from 'expo-router';
 import { COLORS, SPACING, RADIUS, TYPOGRAPHY } from '../constants/theme';
 import { useApp } from '../context/AppContext';
 import { useLanguage } from '../context/LanguageContext';
-import { openWhatsAppEnquiry } from '../lib/supabaseService';
+import { openWhatsAppEnquiry, BARAMATI_PHONE } from '../lib/supabaseService';
 
 export const QuotationEnquiryScreen: React.FC = () => {
   const {
@@ -118,7 +118,7 @@ export const QuotationEnquiryScreen: React.FC = () => {
             </Text>
             <Text style={styles.storeAddress}>{t('showroomAddress')}</Text>
             <Text style={styles.storeDirectPhone}>
-              {language === 'mr' ? 'थेट संपर्क डेस्क:' : 'Quotation Desk:'} +91 98220 12345
+              {language === 'mr' ? 'थेट संपर्क डेस्क:' : 'Quotation Desk:'} {BARAMATI_PHONE}
             </Text>
           </View>
         </View>
@@ -320,7 +320,11 @@ export const QuotationEnquiryScreen: React.FC = () => {
                   {enq.farmerName} • {enq.villageOrCity}
                 </Text>
                 <Text style={styles.historyDate}>
-                  {new Date(enq.submittedAt).toLocaleDateString()}
+                  {new Date(enq.submittedAt).toLocaleDateString(language === 'mr' ? 'mr-IN' : 'en-IN', {
+                    day: '2-digit',
+                    month: 'short',
+                    year: 'numeric',
+                  })}
                 </Text>
               </View>
             ))}

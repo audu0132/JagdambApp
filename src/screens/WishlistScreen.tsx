@@ -77,11 +77,23 @@ export const WishlistScreen: React.FC = () => {
                   }}
                   activeOpacity={0.8}
                 >
-                  <Image
-                    source={{ uri: product.image }}
-                    style={styles.image}
-                    resizeMode="cover"
-                  />
+                  <View style={styles.imageContainer}>
+                    <Image
+                      source={{ uri: product.image }}
+                      style={styles.image}
+                      resizeMode="cover"
+                    />
+                    {!product.inStock && (
+                      <View style={styles.outOfStockOverlay}>
+                        <Text style={styles.outOfStockText}>{t('outOfStock')}</Text>
+                      </View>
+                    )}
+                    {!isOnRequest && product.discountPercent && product.discountPercent > 0 && (
+                      <View style={styles.discountBadge}>
+                        <Text style={styles.discountBadgeText}>{product.discountPercent}% OFF</Text>
+                      </View>
+                    )}
+                  </View>
                 </TouchableOpacity>
 
                 <View style={styles.content}>
@@ -113,6 +125,26 @@ export const WishlistScreen: React.FC = () => {
                     </Text>
                   </TouchableOpacity>
 
+                  {/* Stock Status */}
+                  <View style={styles.stockRow}>
+                    <View
+                      style={[
+                        styles.stockDot,
+                        { backgroundColor: product.inStock ? COLORS.success : COLORS.danger },
+                      ]}
+                    />
+                    <Text
+                      style={[
+                        styles.stockText,
+                        { color: product.inStock ? COLORS.success : COLORS.danger },
+                      ]}
+                    >
+                      {product.inStock
+                        ? `${t('inStock')}${product.stockCount <= 5 ? ` — ${language === 'mr' ? 'फक्त' : 'only'} ${product.stockCount} ${language === 'mr' ? 'शिल्लक' : 'left'}` : ''}`
+                        : t('outOfStock')}
+                    </Text>
+                  </View>
+
                   <View style={styles.priceRow}>
                     {isOnRequest ? (
                       <Text style={styles.price}>{t('priceOnRequest')}</Text>
@@ -142,12 +174,27 @@ export const WishlistScreen: React.FC = () => {
                       </TouchableOpacity>
                     ) : (
                       <TouchableOpacity
-                        style={styles.moveBtn}
+                        style={[
+                          styles.moveBtn,
+                          !product.inStock && styles.moveBtnDisabled,
+                        ]}
                         onPress={() => moveToCartFromWishlist(product)}
+                        disabled={!product.inStock}
                         activeOpacity={0.8}
                       >
-                        <Ionicons name="cart-outline" size={14} color={COLORS.surface} />
-                        <Text style={styles.moveBtnText}>{t('moveToCart')}</Text>
+                        <Ionicons
+                          name="cart-outline"
+                          size={14}
+                          color={product.inStock ? COLORS.surface : COLORS.textMuted}
+                        />
+                        <Text
+                          style={[
+                            styles.moveBtnText,
+                            !product.inStock && styles.moveBtnTextDisabled,
+                          ]}
+                        >
+                          {t('moveToCart')}
+                        </Text>
                       </TouchableOpacity>
                     )}
                   </View>
@@ -202,11 +249,48 @@ const styles = StyleSheet.create({
     elevation: 2,
     gap: SPACING.md,
   },
+  imageContainer: {
+    width: 84,
+    height: 84,
+    borderRadius: RADIUS.md,
+    overflow: 'hidden',
+    backgroundColor: COLORS.surfaceSecondary,
+    position: 'relative',
+  },
   image: {
     width: 84,
     height: 84,
     borderRadius: RADIUS.md,
-    backgroundColor: COLORS.surfaceSecondary,
+  },
+  outOfStockOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(15, 23, 42, 0.55)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  outOfStockText: {
+    color: COLORS.surface,
+    fontSize: 9,
+    fontWeight: '800',
+    textAlign: 'center',
+  },
+  discountBadge: {
+    position: 'absolute',
+    top: 4,
+    left: 4,
+    backgroundColor: COLORS.discountBadge,
+    paddingHorizontal: 5,
+    paddingVertical: 2,
+    borderRadius: RADIUS.xs,
+  },
+  discountBadgeText: {
+    color: COLORS.surface,
+    fontSize: 8,
+    fontWeight: '800',
   },
   content: {
     flex: 1,
@@ -228,6 +312,21 @@ const styles = StyleSheet.create({
     color: COLORS.textPrimary,
     lineHeight: 18,
     marginVertical: 3,
+  },
+  stockRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    marginBottom: 4,
+  },
+  stockDot: {
+    width: 6,
+    height: 6,
+    borderRadius: RADIUS.full,
+  },
+  stockText: {
+    fontSize: 10,
+    fontWeight: '600',
   },
   priceRow: {
     flexDirection: 'row',
@@ -258,10 +357,16 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     borderRadius: RADIUS.md,
   },
+  moveBtnDisabled: {
+    backgroundColor: COLORS.surfaceSecondary,
+  },
   moveBtnText: {
     color: COLORS.surface,
     fontSize: 12,
     fontWeight: '700',
+  },
+  moveBtnTextDisabled: {
+    color: COLORS.textMuted,
   },
   quoteBtn: {
     flexDirection: 'row',
