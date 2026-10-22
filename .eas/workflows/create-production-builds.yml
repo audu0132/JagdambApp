@@ -1,22 +1,11 @@
 name: Create Production Builds
 
-on:
-  push:
-    branches:
-      - main
-  workflow_dispatch: {}
-
 jobs:
   build_android:
-    name: Build Android Production
-    type: build
+    type: build # This job type creates a production build for Android
     params:
       platform: android
-      profile: production
-
   build_ios:
-    name: Build iOS Production
-    type: build
+    type: build # This job type creates a production build for iOS
     params:
       platform: ios
-      profile: production
