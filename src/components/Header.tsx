@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, SPACING, RADIUS, TYPOGRAPHY } from '../constants/theme';
 import { useApp } from '../context/AppContext';
@@ -24,7 +24,11 @@ export const Header: React.FC = () => {
         accessibilityLabel="Jagdamb Enterprises Home"
       >
         <View style={styles.logoBadge}>
-          <Ionicons name="hardware-chip" size={18} color={COLORS.surface} />
+          <Image
+            source={require('../../assets/je-logo.png')}
+            style={styles.logoImage}
+            resizeMode="contain"
+          />
         </View>
         <View>
           <View style={styles.titleRow}>
@@ -112,17 +116,24 @@ const styles = StyleSheet.create({
     gap: SPACING.sm,
   },
   logoBadge: {
-    width: 38,
-    height: 38,
+    width: 42,
+    height: 42,
     borderRadius: RADIUS.md,
-    backgroundColor: COLORS.primary,
+    backgroundColor: COLORS.surface,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: COLORS.primary,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
-    elevation: 3,
+    borderWidth: 1,
+    borderColor: COLORS.borderLight,
+    padding: 2,
+    shadowColor: COLORS.shadow,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 2,
+  },
+  logoImage: {
+    width: 36,
+    height: 36,
   },
   titleRow: {
     flexDirection: 'row',
