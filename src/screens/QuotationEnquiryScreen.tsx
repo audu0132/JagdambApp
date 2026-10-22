@@ -7,6 +7,7 @@ import {
   TextInput,
   TouchableOpacity,
   Alert,
+  Image,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, SPACING, RADIUS, TYPOGRAPHY } from '../constants/theme';
@@ -79,7 +80,11 @@ export const QuotationEnquiryScreen: React.FC = () => {
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
         {/* Store Context Box */}
         <View style={styles.storeCard}>
-          <Ionicons name="storefront" size={24} color={COLORS.primary} />
+          <Image
+            source={require('../../assets/je-logo.png')}
+            style={styles.storeLogo}
+            resizeMode="contain"
+          />
           <View style={styles.storeInfo}>
             <Text style={styles.storeName}>Jagdamb Enterprises — Baramati</Text>
             <Text style={styles.storeAddress}>
@@ -280,6 +285,10 @@ const styles = StyleSheet.create({
     borderColor: COLORS.borderLight,
     gap: SPACING.md,
     marginBottom: SPACING.lg,
+  },
+  storeLogo: {
+    width: 44,
+    height: 44,
   },
   storeInfo: {
     flex: 1,
