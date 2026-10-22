@@ -7,6 +7,7 @@ import {
   TextInput,
   TouchableOpacity,
   Alert,
+  Image,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, SPACING, RADIUS, TYPOGRAPHY } from '../constants/theme';
@@ -46,6 +47,21 @@ export const LoginAccountScreen: React.FC = () => {
       </View>
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
+        {/* Official Brand Portal Card */}
+        <View style={styles.brandHeroCard}>
+          <Image
+            source={require('../../assets/je-logo.png')}
+            style={styles.heroLogoImage}
+            resizeMode="contain"
+          />
+          <View style={styles.brandHeroInfo}>
+            <Text style={styles.brandHeroTitle}>Jagdamb Enterprises</Text>
+            <Text style={styles.brandHeroSubtitle}>
+              Registered Farmer Portal • Baramati, Maharashtra
+            </Text>
+          </View>
+        </View>
+
         {/* Backend / Supabase Status Banner */}
         <View style={styles.backendBadge}>
           <Ionicons
@@ -71,7 +87,11 @@ export const LoginAccountScreen: React.FC = () => {
         <View style={styles.profileCard}>
           <View style={styles.avatarRow}>
             <View style={styles.avatarCircle}>
-              <Ionicons name="person" size={32} color={COLORS.primary} />
+              <Image
+                source={require('../../assets/je-logo.png')}
+                style={styles.avatarLogo}
+                resizeMode="contain"
+              />
             </View>
             <View style={styles.nameCol}>
               <Text style={styles.userName}>{user.fullName}</Text>
