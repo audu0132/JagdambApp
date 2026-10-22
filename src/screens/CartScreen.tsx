@@ -85,7 +85,8 @@ export const CartScreen: React.FC = () => {
         {/* Cart Item Cards */}
         <View style={styles.itemList}>
           {cart.map((item) => {
-            const itemTotal = item.product.price * item.quantity;
+            const unitPrice = item.product.price || 0;
+            const itemTotal = unitPrice * item.quantity;
 
             return (
               <View key={item.product.id} style={styles.cartCard}>
@@ -122,7 +123,9 @@ export const CartScreen: React.FC = () => {
                   </TouchableOpacity>
 
                   <Text style={styles.unitPrice}>
-                    ₹{item.product.price.toLocaleString('en-IN')} each
+                    {item.product.price
+                      ? `₹${item.product.price.toLocaleString('en-IN')} each`
+                      : 'Quotation item'}
                   </Text>
 
                   <View style={styles.cardBottomRow}>

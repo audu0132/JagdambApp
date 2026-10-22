@@ -1,51 +1,80 @@
 # Jagdamb Enterprises — Mobile E-Commerce App (Phase 1)
 
-Modern, professional cross-platform mobile e-commerce application built for **Jagdamb Enterprises**, the leading dairy equipment and milking automation supplier based in Baramati, Maharashtra ([https://www.jagdambenterprises.co.in/](https://www.jagdambenterprises.co.in/)).
+Modern, professional cross-platform mobile e-commerce application built for **Jagdamb Enterprises**, a leading dairy farming, milking automation, and milk testing equipment supplier based in Baramati, Maharashtra ([https://www.jagdambenterprises.co.in/](https://www.jagdambenterprises.co.in/)).
 
 Built with **React Native**, **Expo SDK 58**, and **TypeScript**.
 
 ---
 
-## 📱 Features Delivered in Phase 1
+## 🎨 Branding & Aesthetics
+- **Primary Blue**: `#1769AA` (Equipment authority & precision engineering)
+- **Light Blue**: `#DFF1FF` (Clean accents and interactive chips)
+- **Surface**: `#FFFFFF` (Crisp white cards)
+- **Typography**: `#0F172A` / `#334155` (High-contrast, readable dark text)
+- **Style**: Industrial and agricultural equipment aesthetic designed for dairy farmers and cooperative managers.
 
-### 1. Shopping Home Screen
-- **Brand Header**: Custom header featuring Jagdamb Enterprises identity, location badge (*Baramati • Dairy Solutions*), and live Wishlist & Cart counter badges.
-- **Search Bar**: Live search with clear action, query status indicator, and match counter.
-- **Promotional Carousel**: Highlighting automatic milking machines, 100% genuine replacement spare parts, and ultrasonic milk analyzers.
-- **Category Filter**: Horizontal category pills with icons, item counts, and Marathi titles (*मिल्किंग मशीन, मिल्क अ‍ॅनालायझर, क्रीम सेपरेटर, स्पेअर पार्ट्स*).
-- **Quick Filters**: One-tap filters for *All Products*, *🔥 Best Sellers*, *🏷️ 15%+ Off*, and *⭐ 4.8★ & Above*.
-- **Pull-to-Refresh**: Seamless pull-to-refresh mechanism with animated loading state.
+---
 
-### 2. Product Catalog & Cards
-- **Rich Product Information**: High-resolution imagery, brand tag, model numbers, Marathi product titles, rating stars, and review counts.
-- **Pricing & Discounts**: Clear MRP strikethrough, discounted price in ₹ (INR), and discount percentage badges.
-- **Stock Availability**: Live inventory indicator (*In Stock (count left)* vs *Out of Stock / Sold Out* overlay).
-- **Interactive Actions**: Quick Add to Cart button, in-card stepper quantity controls if already in cart, and heart wishlist toggle.
+## 📱 7 Screens Delivered in Phase 1
 
-### 3. Product Details Screen
-- **Image Gallery**: Large hero product image with thumbnail gallery switcher and discount ribbon.
-- **Specifications Table**: Detailed technical specifications (Motor power, bucket capacity, voltage, vacuum displacement, disc speed).
-- **Key Features**: Bulleted breakdown of farmer-centric benefits and safety mechanisms.
-- **Warranty & Assurance**: Jagdamb Enterprises authentic warranty card and Baramati store service support guarantee.
-- **Sticky Bottom Action Bar**: Quantity selector, Add to Cart (with current cart quantity indicator), and Store Inquiry CTA.
+1. **Home Screen** ([HomeScreen.tsx](file:///d:/React/Freelace/JagdambApp/src/screens/HomeScreen.tsx))
+   - Brand header with Baramati location badge, Wishlist, Cart, and Account buttons.
+   - Live search bar with instant query matching and count indicator.
+   - Promotional carousel highlighting Milking Automation, 100% Genuine Spare Parts, and Ultrasonic Testers.
+   - Quick category chips and filter toggles (*All Equipment*, *🔥 Popular*, *🏷️ 15%+ Off*, *⭐ 4.8★ & Above*).
+   - Pull-to-refresh with smooth loading skeleton.
 
-### 4. Shopping Cart & Quantity Controls
-- **Item Breakdown**: Thumbnail, product name, brand, per-unit price, and line-item total.
-- **Quantity Controls**: Reusable `+` / `-` controls with trash icon on minimum limit and instant subtotal calculation.
-- **Price Summary**: Accurate calculation of Subtotal, 18% GST (Machinery standard), Delivery fee (Free for orders > ₹5,000, else ₹250), and Total Savings.
-- **Store Location & Order Confirmation Modal**: Phase 1 order summary modal previewing the quotation and order pickup without processing real payments yet.
-- **Clear Cart**: Safe confirmation alert before clearing all items.
+2. **Categories Screen** ([CategoriesScreen.tsx](file:///d:/React/Freelace/JagdambApp/src/screens/CategoriesScreen.tsx))
+   - Dedicated drill-down view for the 6 provisional categories:
+     1. *Milking Machines*
+     2. *Milk Analysers*
+     3. *Milk Cooling Equipment*
+     4. *Dairy Pumps*
+     5. *Milk Cans*
+     6. *Spare Parts*
+   - Each category displays its title, Marathi translation (*मिल्किंग मशीन, मिल्क कुलिंग, इ.*), icon, and item count.
 
-### 5. Wishlist
-- **Persistent Local State**: Fast addition and removal of favorite machinery and spare parts.
-- **One-Tap Move to Cart**: Instantly moves an in-stock product to the active cart.
-- **Badge Counter**: Synchronized counter across the top header and bottom navigation tab.
+3. **Product Details Screen** ([ProductDetailsScreen.tsx](file:///d:/React/Freelace/JagdambApp/src/screens/ProductDetailsScreen.tsx))
+   - Image gallery viewer with thumbnail switcher and zoomable view.
+   - Comprehensive technical specifications table (Motor power, bucket capacity, vacuum flow, voltage).
+   - Key farmer benefits bullet points.
+   - Authenticated warranty & Baramati technician service assurance.
+   - **Contextual Actions**:
+     - *Fixed-price items*: Quantity stepper (`+` / `-`) and *Add to Cart*.
+     - *Heavy machinery marked Price on Request*: Prominent *Request Official Quotation* CTA routing directly into the inquiry form.
 
-### 6. Empty & Loading States
-- **Empty Search State**: Informative prompt with one-tap reset.
-- **Empty Cart State**: Graphic and CTA to explore the dairy catalog.
-- **Empty Wishlist State**: Guided prompt to browse equipment.
-- **Loading Skeleton**: Smooth indicator during catalog refreshes.
+4. **Shopping Cart Screen** ([CartScreen.tsx](file:///d:/React/Freelace/JagdambApp/src/screens/CartScreen.tsx))
+   - Item breakdown with thumbnails, unit price, quantity controls, and removal.
+   - Accurate calculation of Subtotal, 18% GST (Machinery standard), Delivery fee (Free for orders > ₹5,000), and Total Savings.
+   - Direct store pickup option notice in Kasba, Baramati.
+   - Phase 1 quotation preview modal (no fake payments implemented).
+
+5. **Wishlist Screen** ([WishlistScreen.tsx](file:///d:/React/Freelace/JagdambApp/src/screens/WishlistScreen.tsx))
+   - Persistent local wishlist state with live badge counter.
+   - One-tap *Move to Cart* for fixed-price items and *Request Quote* for on-request machinery.
+   - Empty state with direct return to catalog.
+
+6. **Login & Account Screen** ([LoginAccountScreen.tsx](file:///d:/React/Freelace/JagdambApp/src/screens/LoginAccountScreen.tsx))
+   - Farmer profile card with farm name, herd size (cattle count), contact number, and shed address.
+   - Editable farm profile saved locally.
+   - Supabase connection readiness status badge.
+   - Quick links to quotation requests and showroom support.
+
+7. **Quotation Enquiry Form Screen** ([QuotationEnquiryScreen.tsx](file:///d:/React/Freelace/JagdambApp/src/screens/QuotationEnquiryScreen.tsx))
+   - Dedicated form for dairy farmers requiring custom quotes on machinery (e.g. Bulk Milk Coolers, pipeline parlours, transfer pumps).
+   - Form fields: Farmer/Enterprise Name, WhatsApp/Mobile, Village/Taluka/District, Herd Size, Equipment of Interest, and Shed/Power requirements.
+   - Form validation, immediate submission confirmation, and inquiry history list.
+
+---
+
+## ⚡ Supabase Integration (Prepared for Phase 2)
+- Supabase client initialized in [`src/lib/supabase.ts`](file:///d:/React/Freelace/JagdambApp/src/lib/supabase.ts) using `@supabase/supabase-js`.
+- Environment variables template created in [`.env.example`](file:///d:/React/Freelace/JagdambApp/.env.example):
+  ```bash
+  EXPO_PUBLIC_SUPABASE_URL=https://your-project-ref.supabase.co
+  EXPO_PUBLIC_SUPABASE_ANON_KEY=your-anon-public-key
+  ```
+- No privileged secret keys are exposed. Safe fallback ensures zero runtime crashes during Phase 1 local development.
 
 ---
 
@@ -53,85 +82,57 @@ Built with **React Native**, **Expo SDK 58**, and **TypeScript**.
 
 ```text
 JagdambApp/
-├── App.tsx                      # Root component with SafeAreaProvider & routing
+├── App.tsx                      # Root component with SafeAreaProvider & 7-screen routing
 ├── app.json                     # Expo configuration
 ├── package.json                 # Dependencies and scripts
 ├── tsconfig.json                # TypeScript strict configuration
+├── .env.example                 # Supabase environment variables template
 └── src/
     ├── constants/
-    │   └── theme.ts             # Colors, typography, spacing, and radius tokens
+    │   └── theme.ts             # Brand colors (#1769AA, #DFF1FF), spacing & typography
     ├── types/
-    │   └── product.ts           # Product, Category, Cart, and Wishlist types
+    │   └── product.ts           # Product, Category, Cart, Quotation & Profile types
+    ├── lib/
+    │   └── supabase.ts          # Supabase client setup & configuration helper
     ├── data/
-    │   ├── categories.ts        # Category metadata with Marathi translations
-    │   └── products.ts          # Realistic dairy equipment catalog
+    │   ├── categories.ts        # 6 provisional categories with Marathi names
+    │   └── products.ts          # Fixed price & on-request dairy equipment catalogue
     ├── context/
-    │   └── AppContext.tsx       # State management (Cart, Wishlist, Search, Tabs)
+    │   └── AppContext.tsx       # State management for Cart, Wishlist, Quotes & User
     ├── components/
-    │   ├── Header.tsx           # Brand header with counters
+    │   ├── Header.tsx           # Brand header with Account, Wishlist & Cart badges
     │   ├── SearchBar.tsx        # Search input with live results counter
-    │   ├── BannerCarousel.tsx   # Promotional banner carousel
+    │   ├── BannerCarousel.tsx   # Promotional hero carousel
     │   ├── CategoryList.tsx     # Horizontal category selector
-    │   ├── ProductCard.tsx      # Product card with badges & quantity controls
+    │   ├── ProductCard.tsx      # Dual-mode card (Fixed price vs. Quote Required)
     │   ├── QuantityControl.tsx  # Reusable +/- stepper
     │   ├── EmptyState.tsx       # Reusable empty state view
     │   ├── LoadingSkeleton.tsx  # Loading state indicator
     │   ├── Toast.tsx            # Floating action notification
-    │   └── BottomTabBar.tsx     # Mobile bottom tab navigation
+    │   └── BottomTabBar.tsx     # 5-tab mobile bottom navigation
     └── screens/
         ├── HomeScreen.tsx       # Home catalog screen
-        ├── ProductDetailsScreen.tsx # Full product specification & details
-        ├── CartScreen.tsx       # Cart & order breakdown
-        └── WishlistScreen.tsx   # Saved products screen
+        ├── CategoriesScreen.tsx # Dedicated 6 categories drill-down
+        ├── ProductDetailsScreen.tsx # Technical specs & contextual CTA
+        ├── CartScreen.tsx       # Cart management & order summary
+        ├── WishlistScreen.tsx   # Saved products screen
+        ├── LoginAccountScreen.tsx # Farmer account & Supabase readiness
+        └── QuotationEnquiryScreen.tsx # Dairy equipment quotation form
 ```
 
 ---
 
-## 🚀 Setup and Running Instructions
+## 💻 Commands to Run and Test
 
-### Prerequisites
-- Node.js (v18+)
-- npm or bun
-
-### 1. Install Dependencies
 ```bash
-npm install
-```
-
-### 2. Run Quality Checks
-```bash
-# Typecheck TypeScript (zero errors)
+# 1. Type-check with TypeScript (0 errors)
 npx tsc --noEmit
 
-# Run Expo configuration and dependency diagnosis (20/20 passed)
+# 2. Run Expo Doctor diagnostic suite (20/20 checks passed)
 npx expo-doctor
-```
 
-### 3. Start Development Server
-```bash
+# 3. Start Development Server
 npx expo start
 ```
-
-- Press `a` in the terminal to open on an Android emulator or connected device.
-- Press `i` to open on an iOS simulator (macOS required).
-- Scan the QR code using the **Expo Go** app on your physical device.
-
----
-
-## 📋 Completed Features & Known Limitations (Phase 1)
-
-### Completed in Phase 1:
-- [x] Shared Android & iOS codebase with Expo SDK 58 & TypeScript.
-- [x] Responsive layout with safe area handling for notches and dynamic islands.
-- [x] Search, category chips, and filter toggles.
-- [x] Rich realistic catalog tailored to Jagdamb Enterprises Baramati dairy business.
-- [x] Interactive Product Details with specification table and image switcher.
-- [x] Cart management with live quantity stepper, item removal, and auto-calculated tax & shipping.
-- [x] Wishlist with "Move to Cart" functionality.
-- [x] Accessible empty and loading states.
-- [x] 100% TypeScript type check and 20/20 Expo Doctor checks passed.
-
-### Known Limitations (Scheduled for Phase 2):
-1. **Local State Only**: Cart and wishlist are maintained in memory; Phase 2 will introduce persistent storage (`AsyncStorage` / SQLite) and user authentication.
-2. **Payments Not Integrated**: In compliance with Phase 1 instructions, payments are previewed as quotations / direct store orders; Phase 2 will add Razorpay / UPI gateway integration.
-3. **Backend API**: The catalog currently uses realistic static data; Phase 2 will connect to a REST/GraphQL API for dynamic inventory synchronization.
+- Open in Web Browser: [`http://localhost:8081`](http://localhost:8081)
+- Open on Physical Device: Launch **Expo Go**, tap **Enter URL manually**, and enter `exp://10.0.1.192:8081`.

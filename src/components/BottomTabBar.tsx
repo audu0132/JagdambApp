@@ -8,7 +8,6 @@ import { TabScreen } from '../types/product';
 interface TabItem {
   id: TabScreen;
   label: string;
-  marathiLabel: string;
   icon: keyof typeof Ionicons.glyphMap;
   activeIcon: keyof typeof Ionicons.glyphMap;
 }
@@ -17,28 +16,30 @@ const TABS: TabItem[] = [
   {
     id: 'home',
     label: 'Home',
-    marathiLabel: 'मुख्य',
     icon: 'home-outline',
     activeIcon: 'home',
   },
   {
-    id: 'search',
-    label: 'Search',
-    marathiLabel: 'शोधा',
-    icon: 'search-outline',
-    activeIcon: 'search',
+    id: 'categories',
+    label: 'Categories',
+    icon: 'grid-outline',
+    activeIcon: 'grid',
+  },
+  {
+    id: 'quote',
+    label: 'Enquiry',
+    icon: 'document-text-outline',
+    activeIcon: 'document-text',
   },
   {
     id: 'wishlist',
     label: 'Wishlist',
-    marathiLabel: 'आवडते',
     icon: 'heart-outline',
     activeIcon: 'heart',
   },
   {
     id: 'cart',
     label: 'Cart',
-    marathiLabel: 'कार्ट',
     icon: 'cart-outline',
     activeIcon: 'cart',
   },
@@ -112,16 +113,16 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     backgroundColor: COLORS.surface,
     borderTopWidth: 1,
-    borderTopColor: COLORS.border,
+    borderTopColor: COLORS.borderLight,
     paddingVertical: SPACING.xs,
-    paddingHorizontal: SPACING.md,
+    paddingHorizontal: SPACING.xs,
     height: 60,
     alignItems: 'center',
     justifyContent: 'space-around',
     shadowColor: COLORS.shadow,
     shadowOffset: { width: 0, height: -3 },
-    shadowOpacity: 0.08,
-    shadowRadius: 6,
+    shadowOpacity: 0.06,
+    shadowRadius: 5,
     elevation: 8,
   },
   tabBtn: {
@@ -162,7 +163,7 @@ const styles = StyleSheet.create({
     fontWeight: '800',
   },
   tabLabel: {
-    fontSize: 11,
+    fontSize: 10,
     marginTop: 2,
   },
   tabLabelActive: {

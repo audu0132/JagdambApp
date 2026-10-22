@@ -1,5 +1,13 @@
 import React, { createContext, useContext, useState, useMemo, useCallback } from 'react';
-import { Product, ProductCategory, CartItem, WishlistItem, TabScreen } from '../types/product';
+import {
+  Product,
+  ProductCategory,
+  CartItem,
+  WishlistItem,
+  TabScreen,
+  QuotationEnquiry,
+  UserProfile,
+} from '../types/product';
 import { PRODUCTS } from '../data/products';
 
 interface AppContextType {
@@ -8,6 +16,8 @@ interface AppContextType {
   setActiveTab: (tab: TabScreen) => void;
   selectedProduct: Product | null;
   setSelectedProduct: (product: Product | null) => void;
+  quotationTargetProduct: Product | null;
+  setQuotationTargetProduct: (product: Product | null) => void;
 
   // Search & Filter state
   searchQuery: string;
@@ -24,7 +34,13 @@ interface AppContextType {
   updateCartQuantity: (productId: string, quantity: number) => void;
   removeFromCart: (productId: string) => void;
   clearCart: () => void;
-  getCartTotal: () => { subtotal: number; gst: number; delivery: number; total: number; savings: number };
+  getCartTotal: () => {
+    subtotal: number;
+    gst: number;
+    delivery: number;
+    total: number;
+    savings: number;
+  };
   getCartCount: () => number;
   getCartItemQuantity: (productId: string) => number;
 
@@ -35,20 +51,44 @@ interface AppContextType {
   moveToCartFromWishlist: (product: Product) => void;
   removeFromWishlist: (productId: string) => void;
 
+  // Quotation Enquiries
+  enquiries: QuotationEnquiry[];
+  submitEnquiry: (enquiry: Omit<QuotationEnquiry, 'id' | 'submittedAt'>) => void;
+  requestProductQuote: (product: Product) => void;
+
+  // User Profile / Auth State (Phase 1 local, prepared for Supabase)
+  user: UserProfile;
+  updateUserProfile: (profile: Partial<UserProfile>) => void;
+  logoutUser: () => void;
+
   // Feedback Notification
   toastMessage: string | null;
   showToast: (message: string) => void;
 }
+
+const DEFAULT_USER: UserProfile = {
+  id: 'guest-1',
+  fullName: 'Dattatray Shinde',
+  phoneNumber: '+91 98220 12345',
+  email: 'dattatray.farmer@example.com',
+  farmName: 'Shinde Dairy Farm',
+  herdSize: '18 Cows (HF & Jersey)',
+  location: 'Jamdar Nagar, Kasba, Baramati - 413102',
+  isLoggedIn: true,
+};
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [activeTab, setActiveTab] = useState<TabScreen>('home');
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const [quotationTargetProduct, setQuotationTargetProduct] = useState<Product | null>(null);
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [selectedCategory, setSelectedCategory] = useState<ProductCategory>('all');
   const [cart, setCart] = useState<CartItem[]>([]);
   const [wishlist, setWishlist] = useState<WishlistItem[]>([]);
+  const [enquiries, setEnquiries] = useState<QuotationEnquiry[]>([]);
+  const [user, setUser] = useState<UserProfile>(DEFAULT_USER);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
 
@@ -61,7 +101,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const refreshProducts = useCallback(async () => {
     setIsLoading(true);
-    await new Promise((resolve) => setTimeout(resolve, 600));
+    await new Promise((resolve) => setTimeout(resolve, 500));
     setIsLoading(false);
   }, []);
 
@@ -82,11 +122,26 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     });
   }, [selectedCategory, searchQuery]);
 
+  // Request Product Quote Helper
+  const requestProductQuote = useCallback(
+    (product: Product) => {
+      setQuotationTargetProduct(product);
+      setSelectedProduct(null);
+      setActiveTab('quote');
+    },
+    []
+  );
+
   // Cart Handlers
   const addToCart = useCallback(
     (product: Product, quantity: number = 1) => {
       if (!product.inStock) {
-        showToast('Sorry, this product is currently out of stock');
+        showToast('Sorry, this equipment is currently out of stock');
+        return;
+      }
+
+      if (product.priceType === 'on-request') {
+        requestProductQuote(product);
         return;
       }
 
@@ -104,7 +159,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         }
       });
     },
-    [showToast]
+    [showToast, requestProductQuote]
   );
 
   const updateCartQuantity = useCallback((productId: string, quantity: number) => {
@@ -139,12 +194,16 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   );
 
   const getCartTotal = useCallback(() => {
-    const subtotal = cart.reduce((acc, item) => acc + item.product.price * item.quantity, 0);
-    const originalTotal = cart.reduce((acc, item) => acc + item.product.originalPrice * item.quantity, 0);
+    const subtotal = cart.reduce(
+      (acc, item) => acc + (item.product.price || 0) * item.quantity,
+      0
+    );
+    const originalTotal = cart.reduce(
+      (acc, item) => acc + (item.product.originalPrice || item.product.price || 0) * item.quantity,
+      0
+    );
     const savings = Math.max(0, originalTotal - subtotal);
-    // 18% GST standard on machinery
     const gst = Math.round(subtotal * 0.18);
-    // Free delivery above ₹5000, else flat ₹250
     const delivery = subtotal > 5000 || subtotal === 0 ? 0 : 250;
     const total = subtotal + gst + delivery;
 
@@ -185,11 +244,38 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         showToast('Product is currently out of stock');
         return;
       }
+      if (product.priceType === 'on-request') {
+        requestProductQuote(product);
+        return;
+      }
       addToCart(product, 1);
       removeFromWishlist(product.id);
     },
-    [addToCart, removeFromWishlist, showToast]
+    [addToCart, removeFromWishlist, requestProductQuote, showToast]
   );
+
+  // Quotation Submission
+  const submitEnquiry = useCallback(
+    (enquiryData: Omit<QuotationEnquiry, 'id' | 'submittedAt'>) => {
+      const newEnquiry: QuotationEnquiry = {
+        ...enquiryData,
+        id: `ENQ-${Date.now().toString().slice(-6)}`,
+        submittedAt: Date.now(),
+      };
+      setEnquiries((prev) => [newEnquiry, ...prev]);
+      showToast(`Quotation Enquiry ${newEnquiry.id} Submitted!`);
+    },
+    [showToast]
+  );
+
+  // User Profile
+  const updateUserProfile = useCallback((profile: Partial<UserProfile>) => {
+    setUser((prev) => ({ ...prev, ...profile }));
+  }, []);
+
+  const logoutUser = useCallback(() => {
+    setUser((prev) => ({ ...prev, isLoggedIn: false }));
+  }, []);
 
   return (
     <AppContext.Provider
@@ -198,6 +284,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         setActiveTab,
         selectedProduct,
         setSelectedProduct,
+        quotationTargetProduct,
+        setQuotationTargetProduct,
         searchQuery,
         setSearchQuery,
         selectedCategory,
@@ -218,6 +306,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         isInWishlist,
         moveToCartFromWishlist,
         removeFromWishlist,
+        enquiries,
+        submitEnquiry,
+        requestProductQuote,
+        user,
+        updateUserProfile,
+        logoutUser,
         toastMessage,
         showToast,
       }}

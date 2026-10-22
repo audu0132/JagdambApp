@@ -19,10 +19,10 @@ export const ProductDetailsScreen: React.FC = () => {
     setSelectedProduct,
     addToCart,
     cart,
-    updateCartQuantity,
     isInWishlist,
     toggleWishlist,
     setActiveTab,
+    requestProductQuote,
   } = useApp();
 
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
@@ -33,15 +33,23 @@ export const ProductDetailsScreen: React.FC = () => {
   const isWishlisted = isInWishlist(selectedProduct.id);
   const cartItem = cart.find((item) => item.product.id === selectedProduct.id);
   const currentImageUri = selectedImage || selectedProduct.image;
+  const isOnRequest = selectedProduct.priceType === 'on-request';
 
   const imagesList = [
     selectedProduct.image,
     ...(selectedProduct.additionalImages || []),
   ];
 
-  const formattedPrice = `₹${selectedProduct.price.toLocaleString('en-IN')}`;
-  const formattedOriginalPrice = `₹${selectedProduct.originalPrice.toLocaleString('en-IN')}`;
-  const savings = selectedProduct.originalPrice - selectedProduct.price;
+  const formattedPrice = selectedProduct.price
+    ? `₹${selectedProduct.price.toLocaleString('en-IN')}`
+    : 'Price on Request';
+  const formattedOriginalPrice = selectedProduct.originalPrice
+    ? `₹${selectedProduct.originalPrice.toLocaleString('en-IN')}`
+    : null;
+  const savings =
+    selectedProduct.originalPrice && selectedProduct.price
+      ? selectedProduct.originalPrice - selectedProduct.price
+      : 0;
 
   const handleAddToCart = () => {
     addToCart(selectedProduct, localQuantity);
@@ -49,7 +57,7 @@ export const ProductDetailsScreen: React.FC = () => {
 
   const handleInquire = () => {
     Alert.alert(
-      'Jagdamb Enterprises Inquiry',
+      'Jagdamb Enterprises — Baramati Direct Contact',
       `Interested in ${selectedProduct.name} (Model: ${selectedProduct.modelNumber})?\n\n📍 Visit: Shop 2, Jamdar Nagar, Near PDCC Bank, Kasba, Baramati - 413102\n📞 Call: +91 98220 XXXXX for direct quotes and farm delivery.`,
       [{ text: 'Close', style: 'cancel' }]
     );
@@ -64,7 +72,6 @@ export const ProductDetailsScreen: React.FC = () => {
           onPress={() => setSelectedProduct(null)}
           hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           accessibilityLabel="Back to products"
-          accessibilityRole="button"
         >
           <Ionicons name="arrow-back" size={24} color={COLORS.textPrimary} />
         </TouchableOpacity>
@@ -78,7 +85,6 @@ export const ProductDetailsScreen: React.FC = () => {
             style={styles.headerIconBtn}
             onPress={() => toggleWishlist(selectedProduct)}
             accessibilityLabel={isWishlisted ? 'Remove from wishlist' : 'Add to wishlist'}
-            accessibilityRole="button"
           >
             <Ionicons
               name={isWishlisted ? 'heart' : 'heart-outline'}
@@ -94,7 +100,6 @@ export const ProductDetailsScreen: React.FC = () => {
               setActiveTab('cart');
             }}
             accessibilityLabel="Go to cart"
-            accessibilityRole="button"
           >
             <Ionicons name="cart-outline" size={24} color={COLORS.textPrimary} />
           </TouchableOpacity>
@@ -106,13 +111,17 @@ export const ProductDetailsScreen: React.FC = () => {
         <View style={styles.imageSection}>
           <Image source={{ uri: currentImageUri }} style={styles.mainImage} resizeMode="cover" />
 
-          {selectedProduct.discountPercent > 0 && (
+          {isOnRequest ? (
+            <View style={styles.quoteBadge}>
+              <Text style={styles.quoteBadgeText}>QUOTE ON REQUEST</Text>
+            </View>
+          ) : selectedProduct.discountPercent && selectedProduct.discountPercent > 0 ? (
             <View style={styles.discountBadge}>
               <Text style={styles.discountBadgeText}>
                 {selectedProduct.discountPercent}% OFF
               </Text>
             </View>
-          )}
+          ) : null}
 
           {imagesList.length > 1 && (
             <View style={styles.thumbnailsRow}>
@@ -173,38 +182,49 @@ export const ProductDetailsScreen: React.FC = () => {
                   { color: selectedProduct.inStock ? COLORS.success : COLORS.danger },
                 ]}
               >
-                {selectedProduct.inStock
-                  ? `In Stock (${selectedProduct.stockCount} left)`
-                  : 'Out of Stock'}
+                {selectedProduct.inStock ? 'Available' : 'Out of Stock'}
               </Text>
             </View>
           </View>
 
           {/* Pricing Box */}
           <View style={styles.priceContainer}>
-            <View style={styles.priceRow}>
-              <Text style={styles.currentPrice}>{formattedPrice}</Text>
-              {selectedProduct.originalPrice > selectedProduct.price && (
-                <Text style={styles.mrpPrice}>{formattedOriginalPrice}</Text>
-              )}
-            </View>
-            {savings > 0 && (
-              <Text style={styles.savingsTag}>
-                You Save ₹{savings.toLocaleString('en-IN')} ({selectedProduct.discountPercent}% off MRP)
-              </Text>
+            {isOnRequest ? (
+              <View>
+                <View style={styles.priceRow}>
+                  <Text style={styles.quotePriceTitle}>Price on Request</Text>
+                </View>
+                <Text style={styles.quoteExplanation}>
+                  Commercial milk cooling & pipeline parlour systems require custom sizing based on your farm's herd count, shed dimensions, and electrical phase. Submit a quotation enquiry for a custom engineered proposal.
+                </Text>
+              </View>
+            ) : (
+              <View>
+                <View style={styles.priceRow}>
+                  <Text style={styles.currentPrice}>{formattedPrice}</Text>
+                  {formattedOriginalPrice && (
+                    <Text style={styles.mrpPrice}>{formattedOriginalPrice}</Text>
+                  )}
+                </View>
+                {savings > 0 && (
+                  <Text style={styles.savingsTag}>
+                    You Save ₹{savings.toLocaleString('en-IN')} ({selectedProduct.discountPercent}% off MRP)
+                  </Text>
+                )}
+                <Text style={styles.taxNote}>*Inclusive of GST. Delivery available in Baramati & across Maharashtra.</Text>
+              </View>
             )}
-            <Text style={styles.taxNote}>*Inclusive of GST. Delivery available in Baramati & across Maharashtra.</Text>
           </View>
 
           {/* Description */}
           <View style={styles.cardBlock}>
-            <Text style={styles.blockTitle}>Description</Text>
+            <Text style={styles.blockTitle}>Equipment Description</Text>
             <Text style={styles.descriptionText}>{selectedProduct.description}</Text>
           </View>
 
           {/* Key Features */}
           <View style={styles.cardBlock}>
-            <Text style={styles.blockTitle}>Key Features & Benefits</Text>
+            <Text style={styles.blockTitle}>Key Features & Farm Benefits</Text>
             {selectedProduct.features.map((feature, i) => (
               <View key={i} style={styles.featureItem}>
                 <Ionicons name="checkmark-done" size={18} color={COLORS.primary} />
@@ -238,7 +258,7 @@ export const ProductDetailsScreen: React.FC = () => {
             <View style={styles.warrantyContent}>
               <Text style={styles.warrantyTitle}>{selectedProduct.warranty}</Text>
               <Text style={styles.warrantySub}>
-                Authorized Jagdamb Enterprises service guarantee with 100% genuine replacement components.
+                Authorized Jagdamb Enterprises genuine parts guarantee with on-site technician service in Baramati and surrounding regions.
               </Text>
             </View>
           </View>
@@ -247,46 +267,56 @@ export const ProductDetailsScreen: React.FC = () => {
 
       {/* Sticky Bottom Action Bar */}
       <View style={styles.bottomBar}>
-        <View style={styles.bottomBarLeft}>
-          <Text style={styles.qtyLabel}>Quantity:</Text>
-          <QuantityControl
-            quantity={localQuantity}
-            onIncrement={() => setLocalQuantity((q) => q + 1)}
-            onDecrement={() => setLocalQuantity((q) => Math.max(1, q - 1))}
-            min={1}
-            max={selectedProduct.stockCount || 10}
-            size="medium"
-          />
-        </View>
-
-        <View style={styles.bottomBarRight}>
+        {isOnRequest ? (
           <TouchableOpacity
-            style={[
-              styles.addCartBtn,
-              !selectedProduct.inStock && styles.addCartBtnDisabled,
-            ]}
-            onPress={handleAddToCart}
-            disabled={!selectedProduct.inStock}
+            style={styles.fullQuoteBtn}
+            onPress={() => requestProductQuote(selectedProduct)}
             activeOpacity={0.8}
-            accessibilityRole="button"
-            accessibilityLabel="Add to cart"
           >
-            <Ionicons name="cart" size={18} color={COLORS.textInverse} />
-            <Text style={styles.addCartBtnText}>
-              {cartItem ? `Add More (${cartItem.quantity} in cart)` : 'Add to Cart'}
-            </Text>
+            <Ionicons name="document-text" size={20} color={COLORS.textInverse} />
+            <Text style={styles.fullQuoteBtnText}>Request Official Quotation</Text>
           </TouchableOpacity>
+        ) : (
+          <>
+            <View style={styles.bottomBarLeft}>
+              <Text style={styles.qtyLabel}>Quantity:</Text>
+              <QuantityControl
+                quantity={localQuantity}
+                onIncrement={() => setLocalQuantity((q) => q + 1)}
+                onDecrement={() => setLocalQuantity((q) => Math.max(1, q - 1))}
+                min={1}
+                max={selectedProduct.stockCount || 10}
+                size="medium"
+              />
+            </View>
 
-          <TouchableOpacity
-            style={styles.inquireBtn}
-            onPress={handleInquire}
-            activeOpacity={0.8}
-            accessibilityRole="button"
-            accessibilityLabel="Inquire from store"
-          >
-            <Ionicons name="call-outline" size={18} color={COLORS.primaryDark} />
-          </TouchableOpacity>
-        </View>
+            <View style={styles.bottomBarRight}>
+              <TouchableOpacity
+                style={[
+                  styles.addCartBtn,
+                  !selectedProduct.inStock && styles.addCartBtnDisabled,
+                ]}
+                onPress={handleAddToCart}
+                disabled={!selectedProduct.inStock}
+                activeOpacity={0.8}
+              >
+                <Ionicons name="cart" size={18} color={COLORS.textInverse} />
+                <Text style={styles.addCartBtnText}>
+                  {cartItem ? `In Cart (${cartItem.quantity})` : 'Add to Cart'}
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.inquireBtn}
+                onPress={handleInquire}
+                activeOpacity={0.8}
+                accessibilityLabel="Call store"
+              >
+                <Ionicons name="call-outline" size={18} color={COLORS.primaryDark} />
+              </TouchableOpacity>
+            </View>
+          </>
+        )}
       </View>
     </View>
   );
@@ -305,7 +335,7 @@ const styles = StyleSheet.create({
     paddingVertical: SPACING.md,
     backgroundColor: COLORS.surface,
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
+    borderBottomColor: COLORS.borderLight,
   },
   backButton: {
     padding: SPACING.xs,
@@ -335,6 +365,20 @@ const styles = StyleSheet.create({
   mainImage: {
     width: '100%',
     height: 300,
+  },
+  quoteBadge: {
+    position: 'absolute',
+    top: SPACING.md,
+    left: SPACING.md,
+    backgroundColor: COLORS.primaryDark,
+    paddingHorizontal: SPACING.md,
+    paddingVertical: 5,
+    borderRadius: RADIUS.xs,
+  },
+  quoteBadgeText: {
+    color: COLORS.textInverse,
+    fontSize: 11,
+    fontWeight: '800',
   },
   discountBadge: {
     position: 'absolute',
@@ -443,8 +487,19 @@ const styles = StyleSheet.create({
     padding: SPACING.lg,
     borderRadius: RADIUS.lg,
     borderWidth: 1,
-    borderColor: COLORS.border,
+    borderColor: COLORS.borderLight,
     marginBottom: SPACING.lg,
+  },
+  quotePriceTitle: {
+    fontSize: 22,
+    fontWeight: '800',
+    color: COLORS.primary,
+  },
+  quoteExplanation: {
+    fontSize: 12,
+    color: COLORS.textSecondary,
+    lineHeight: 18,
+    marginTop: 6,
   },
   priceRow: {
     flexDirection: 'row',
@@ -477,7 +532,7 @@ const styles = StyleSheet.create({
     padding: SPACING.lg,
     borderRadius: RADIUS.lg,
     borderWidth: 1,
-    borderColor: COLORS.border,
+    borderColor: COLORS.borderLight,
     marginBottom: SPACING.lg,
   },
   blockTitle: {
@@ -505,14 +560,14 @@ const styles = StyleSheet.create({
     borderRadius: RADIUS.md,
     overflow: 'hidden',
     borderWidth: 1,
-    borderColor: COLORS.border,
+    borderColor: COLORS.borderLight,
   },
   specRow: {
     flexDirection: 'row',
     paddingVertical: SPACING.sm,
     paddingHorizontal: SPACING.md,
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
+    borderBottomColor: COLORS.borderLight,
   },
   specRowEven: {
     backgroundColor: COLORS.surfaceSecondary,
@@ -562,7 +617,7 @@ const styles = StyleSheet.create({
     right: 0,
     backgroundColor: COLORS.surface,
     borderTopWidth: 1,
-    borderTopColor: COLORS.border,
+    borderTopColor: COLORS.borderLight,
     paddingHorizontal: SPACING.lg,
     paddingVertical: SPACING.md,
     flexDirection: 'row',
@@ -573,6 +628,21 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 8,
     elevation: 8,
+  },
+  fullQuoteBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: COLORS.primary,
+    paddingVertical: 14,
+    borderRadius: RADIUS.md,
+    gap: 8,
+  },
+  fullQuoteBtnText: {
+    color: COLORS.textInverse,
+    fontSize: 15,
+    fontWeight: '700',
   },
   bottomBarLeft: {
     flexDirection: 'column',

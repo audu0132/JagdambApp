@@ -19,10 +19,12 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onPress }) =>
     getCartItemQuantity,
     isInWishlist,
     toggleWishlist,
+    requestProductQuote,
   } = useApp();
 
   const isWishlisted = isInWishlist(product.id);
   const cartQty = getCartItemQuantity(product.id);
+  const isOnRequest = product.priceType === 'on-request';
 
   const handleCardPress = () => {
     if (onPress) {
@@ -32,36 +34,40 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onPress }) =>
     }
   };
 
-  const formattedPrice = `₹${product.price.toLocaleString('en-IN')}`;
-  const formattedOriginalPrice = `₹${product.originalPrice.toLocaleString('en-IN')}`;
+  const formattedPrice = product.price
+    ? `₹${product.price.toLocaleString('en-IN')}`
+    : 'Price on Request';
+  const formattedOriginalPrice = product.originalPrice
+    ? `₹${product.originalPrice.toLocaleString('en-IN')}`
+    : null;
 
   return (
     <TouchableOpacity
       style={styles.card}
       onPress={handleCardPress}
       activeOpacity={0.88}
-      accessibilityLabel={`${product.name}, price ${formattedPrice}`}
+      accessibilityLabel={`${product.name}, ${formattedPrice}`}
       accessibilityRole="button"
     >
       {/* Product Image Area */}
       <View style={styles.imageContainer}>
-        <Image
-          source={{ uri: product.image }}
-          style={styles.image}
-          resizeMode="cover"
-        />
+        <Image source={{ uri: product.image }} style={styles.image} resizeMode="cover" />
 
         {/* Badges Overlay */}
         <View style={styles.badgesRow}>
-          {product.discountPercent > 0 && (
+          {isOnRequest ? (
+            <View style={styles.quoteBadge}>
+              <Text style={styles.quoteBadgeText}>QUOTE REQUIRED</Text>
+            </View>
+          ) : product.discountPercent && product.discountPercent > 0 ? (
             <View style={styles.discountBadge}>
               <Text style={styles.discountText}>{product.discountPercent}% OFF</Text>
             </View>
-          )}
+          ) : null}
 
           {product.isBestSeller && (
             <View style={styles.bestSellerBadge}>
-              <Text style={styles.bestSellerText}>BESTSELLER</Text>
+              <Text style={styles.bestSellerText}>POPULAR</Text>
             </View>
           )}
         </View>
@@ -107,7 +113,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onPress }) =>
                 { color: product.inStock ? COLORS.success : COLORS.danger },
               ]}
             >
-              {product.inStock ? `In Stock (${product.stockCount})` : 'Sold Out'}
+              {product.inStock ? 'Available' : 'Sold Out'}
             </Text>
           </View>
         </View>
@@ -135,15 +141,33 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onPress }) =>
 
         {/* Price Section */}
         <View style={styles.priceRow}>
-          <Text style={styles.price}>{formattedPrice}</Text>
-          {product.originalPrice > product.price && (
-            <Text style={styles.originalPrice}>{formattedOriginalPrice}</Text>
+          {isOnRequest ? (
+            <View style={styles.onRequestRow}>
+              <Ionicons name="chatbubbles-outline" size={16} color={COLORS.primary} />
+              <Text style={styles.onRequestText}>Price on Request</Text>
+            </View>
+          ) : (
+            <>
+              <Text style={styles.price}>{formattedPrice}</Text>
+              {formattedOriginalPrice && (
+                <Text style={styles.originalPrice}>{formattedOriginalPrice}</Text>
+              )}
+            </>
           )}
         </View>
 
-        {/* Action Button: Add to Cart OR Quantity Controls */}
+        {/* Action Button: Add to Cart OR Request Quote */}
         <View style={styles.actionContainer}>
-          {cartQty > 0 ? (
+          {isOnRequest ? (
+            <TouchableOpacity
+              style={styles.quoteBtn}
+              onPress={() => requestProductQuote(product)}
+              activeOpacity={0.8}
+            >
+              <Ionicons name="document-text-outline" size={15} color={COLORS.primaryDark} />
+              <Text style={styles.quoteBtnText}>Request Quote</Text>
+            </TouchableOpacity>
+          ) : cartQty > 0 ? (
             <View style={styles.quantityRow}>
               <QuantityControl
                 quantity={cartQty}
@@ -162,13 +186,11 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onPress }) =>
               onPress={() => addToCart(product, 1)}
               disabled={!product.inStock}
               activeOpacity={0.8}
-              accessibilityLabel={`Add ${product.name} to cart`}
-              accessibilityRole="button"
             >
               <Ionicons
                 name="cart-outline"
                 size={16}
-                color={product.inStock ? COLORS.surface : COLORS.textMuted}
+                color={product.inStock ? COLORS.textInverse : COLORS.textMuted}
               />
               <Text
                 style={[
@@ -191,13 +213,13 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.surface,
     borderRadius: RADIUS.lg,
     borderWidth: 1,
-    borderColor: COLORS.border,
+    borderColor: COLORS.borderLight,
     overflow: 'hidden',
     marginBottom: SPACING.md,
     shadowColor: COLORS.shadow,
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 6,
+    shadowOpacity: 0.05,
+    shadowRadius: 5,
     elevation: 2,
   },
   imageContainer: {
@@ -216,6 +238,18 @@ const styles = StyleSheet.create({
     left: SPACING.sm,
     gap: 4,
     zIndex: 2,
+  },
+  quoteBadge: {
+    backgroundColor: COLORS.primaryDark,
+    paddingHorizontal: SPACING.sm,
+    paddingVertical: 3,
+    borderRadius: RADIUS.xs,
+  },
+  quoteBadgeText: {
+    color: COLORS.textInverse,
+    fontSize: 9,
+    fontWeight: '800',
+    letterSpacing: 0.4,
   },
   discountBadge: {
     backgroundColor: COLORS.discountBadge,
@@ -277,7 +311,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACING.md,
     paddingVertical: 6,
     borderRadius: RADIUS.xs,
-    backgroundColor: 'rgba(239, 68, 68, 0.9)',
+    backgroundColor: 'rgba(220, 38, 38, 0.9)',
   },
   content: {
     padding: SPACING.md,
@@ -291,7 +325,7 @@ const styles = StyleSheet.create({
   brandText: {
     fontSize: 11,
     fontWeight: '700',
-    color: COLORS.primaryDark,
+    color: COLORS.primary,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
@@ -359,8 +393,34 @@ const styles = StyleSheet.create({
     color: COLORS.textMuted,
     textDecorationLine: 'line-through',
   },
+  onRequestRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  onRequestText: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: COLORS.primary,
+  },
   actionContainer: {
     marginTop: 2,
+  },
+  quoteBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: COLORS.primaryLight,
+    borderWidth: 1.5,
+    borderColor: COLORS.primary,
+    paddingVertical: 9,
+    borderRadius: RADIUS.md,
+    gap: 6,
+  },
+  quoteBtnText: {
+    color: COLORS.primaryDark,
+    fontSize: 13,
+    fontWeight: '700',
   },
   addToCartBtn: {
     flexDirection: 'row',
@@ -374,7 +434,7 @@ const styles = StyleSheet.create({
   addToCartBtnDisabled: {
     backgroundColor: COLORS.surfaceSecondary,
     borderWidth: 1,
-    borderColor: COLORS.border,
+    borderColor: COLORS.borderLight,
   },
   addToCartText: {
     color: COLORS.textInverse,

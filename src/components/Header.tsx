@@ -5,7 +5,7 @@ import { COLORS, SPACING, RADIUS, TYPOGRAPHY } from '../constants/theme';
 import { useApp } from '../context/AppContext';
 
 export const Header: React.FC = () => {
-  const { setActiveTab, getCartCount, wishlist, setSelectedProduct } = useApp();
+  const { setActiveTab, getCartCount, wishlist, setSelectedProduct, user } = useApp();
   const cartCount = getCartCount();
   const wishlistCount = wishlist.length;
 
@@ -16,8 +16,8 @@ export const Header: React.FC = () => {
 
   return (
     <View style={styles.container}>
-      <TouchableOpacity 
-        style={styles.brandContainer} 
+      <TouchableOpacity
+        style={styles.brandContainer}
         onPress={handleLogoPress}
         activeOpacity={0.8}
         accessibilityRole="button"
@@ -39,6 +39,21 @@ export const Header: React.FC = () => {
       </TouchableOpacity>
 
       <View style={styles.actions}>
+        {/* Account / Profile Button */}
+        <TouchableOpacity
+          style={styles.iconButton}
+          onPress={() => {
+            setSelectedProduct(null);
+            setActiveTab('account');
+          }}
+          activeOpacity={0.7}
+          accessibilityLabel="Farmer Account"
+          accessibilityRole="button"
+        >
+          <Ionicons name="person-outline" size={20} color={COLORS.textPrimary} />
+        </TouchableOpacity>
+
+        {/* Wishlist Button */}
         <TouchableOpacity
           style={styles.iconButton}
           onPress={() => {
@@ -49,7 +64,7 @@ export const Header: React.FC = () => {
           accessibilityLabel={`Wishlist, ${wishlistCount} items`}
           accessibilityRole="button"
         >
-          <Ionicons name="heart-outline" size={24} color={COLORS.textPrimary} />
+          <Ionicons name="heart-outline" size={22} color={COLORS.textPrimary} />
           {wishlistCount > 0 && (
             <View style={styles.badge}>
               <Text style={styles.badgeText}>{wishlistCount > 99 ? '99+' : wishlistCount}</Text>
@@ -57,6 +72,7 @@ export const Header: React.FC = () => {
           )}
         </TouchableOpacity>
 
+        {/* Cart Button */}
         <TouchableOpacity
           style={[styles.iconButton, styles.cartButton]}
           onPress={() => {
@@ -67,7 +83,7 @@ export const Header: React.FC = () => {
           accessibilityLabel={`Cart, ${cartCount} items`}
           accessibilityRole="button"
         >
-          <Ionicons name="cart-outline" size={24} color={COLORS.surface} />
+          <Ionicons name="cart-outline" size={22} color={COLORS.surface} />
           {cartCount > 0 && (
             <View style={[styles.badge, styles.cartBadge]}>
               <Text style={styles.badgeText}>{cartCount > 99 ? '99+' : cartCount}</Text>
@@ -88,7 +104,7 @@ const styles = StyleSheet.create({
     paddingVertical: SPACING.md,
     backgroundColor: COLORS.surface,
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
+    borderBottomColor: COLORS.borderLight,
   },
   brandContainer: {
     flexDirection: 'row',
@@ -139,11 +155,11 @@ const styles = StyleSheet.create({
   actions: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: SPACING.sm,
+    gap: SPACING.xs,
   },
   iconButton: {
-    width: 40,
-    height: 40,
+    width: 38,
+    height: 38,
     borderRadius: RADIUS.full,
     backgroundColor: COLORS.surfaceSecondary,
     alignItems: 'center',
@@ -155,12 +171,12 @@ const styles = StyleSheet.create({
   },
   badge: {
     position: 'absolute',
-    top: -3,
-    right: -3,
+    top: -2,
+    right: -2,
     backgroundColor: COLORS.discountBadge,
     borderRadius: RADIUS.full,
-    minWidth: 18,
-    height: 18,
+    minWidth: 17,
+    height: 17,
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 4,
@@ -172,7 +188,7 @@ const styles = StyleSheet.create({
   },
   badgeText: {
     color: COLORS.textInverse,
-    fontSize: 10,
+    fontSize: 9,
     fontWeight: '700',
   },
 });

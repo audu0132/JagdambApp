@@ -13,7 +13,7 @@ interface BannerItem {
   title: string;
   subtitle: string;
   actionText: string;
-  categoryFilter?: 'milking-machines' | 'spares-accessories' | 'milk-analysers';
+  categoryFilter?: 'milking-machines' | 'spare-parts' | 'milk-analysers';
   gradientColor: string;
   icon: keyof typeof Ionicons.glyphMap;
 }
@@ -26,7 +26,7 @@ const BANNERS: BannerItem[] = [
     subtitle: 'Save 70% milking time & maintain udder health with food-grade SS cans.',
     actionText: 'View Machines',
     categoryFilter: 'milking-machines',
-    gradientColor: '#0284C7',
+    gradientColor: '#1769AA',
     icon: 'hardware-chip-outline',
   },
   {
@@ -35,7 +35,7 @@ const BANNERS: BannerItem[] = [
     title: 'Pulsators, Liners & Cans',
     subtitle: 'Flat 20%+ Off on high-durability replacement parts & milk cans.',
     actionText: 'Shop Spares',
-    categoryFilter: 'spares-accessories',
+    categoryFilter: 'spare-parts',
     gradientColor: '#059669',
     icon: 'construct-outline',
   },

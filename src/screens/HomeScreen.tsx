@@ -43,7 +43,7 @@ export const HomeScreen: React.FC = () => {
     if (quickFilter === 'bestsellers') {
       list = list.filter((p) => p.isBestSeller);
     } else if (quickFilter === 'offers') {
-      list = list.filter((p) => p.discountPercent >= 15);
+      list = list.filter((p) => typeof p.discountPercent === 'number' && p.discountPercent >= 15);
     } else if (quickFilter === 'top-rated') {
       list = list.filter((p) => p.rating >= 4.8);
     }

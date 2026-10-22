@@ -86,13 +86,19 @@ export const WishlistScreen: React.FC = () => {
                 </TouchableOpacity>
 
                 <View style={styles.priceRow}>
-                  <Text style={styles.price}>
-                    ₹{product.price.toLocaleString('en-IN')}
-                  </Text>
-                  {product.originalPrice > product.price && (
-                    <Text style={styles.originalPrice}>
-                      ₹{product.originalPrice.toLocaleString('en-IN')}
-                    </Text>
+                  {product.priceType === 'on-request' ? (
+                    <Text style={styles.price}>Price on Request</Text>
+                  ) : (
+                    <>
+                      <Text style={styles.price}>
+                        ₹{(product.price || 0).toLocaleString('en-IN')}
+                      </Text>
+                      {product.originalPrice && product.price && product.originalPrice > product.price && (
+                        <Text style={styles.originalPrice}>
+                          ₹{product.originalPrice.toLocaleString('en-IN')}
+                        </Text>
+                      )}
+                    </>
                   )}
                 </View>
 
@@ -107,7 +113,7 @@ export const WishlistScreen: React.FC = () => {
                     activeOpacity={0.8}
                   >
                     <Ionicons
-                      name="cart-outline"
+                      name={product.priceType === 'on-request' ? 'document-text-outline' : 'cart-outline'}
                       size={16}
                       color={product.inStock ? COLORS.textInverse : COLORS.textMuted}
                     />
@@ -117,7 +123,11 @@ export const WishlistScreen: React.FC = () => {
                         !product.inStock && styles.moveToCartTextDisabled,
                       ]}
                     >
-                      {product.inStock ? 'Move to Cart' : 'Out of Stock'}
+                      {product.priceType === 'on-request'
+                        ? 'Request Quote'
+                        : product.inStock
+                        ? 'Move to Cart'
+                        : 'Out of Stock'}
                     </Text>
                   </TouchableOpacity>
                 </View>

@@ -1,39 +1,41 @@
 export const COLORS = {
-  // Brand Colors (Jagdamb Enterprises Dairy Tech Palette)
-  primary: '#0284C7',      // Sky/Cerulean Blue
-  primaryDark: '#0369A1',  // Deep Marine
-  primaryLight: '#E0F2FE', // Light Ice Blue
-  accent: '#059669',       // Clean Green (Quality & Agriculture)
+  // Brand Colors (Jagdamb Enterprises Specified Branding)
+  primary: '#1769AA',      // Primary Blue
+  primaryDark: '#0D47A1',  // Deep Marine Blue
+  primaryLight: '#DFF1FF', // Specified Light Blue
+  accent: '#059669',       // Clean Agricultural Green
   accentLight: '#D1FAE5',
 
-  // UI Neutrals
-  background: '#F8FAFC',   // Off-white / Slate 50
-  surface: '#FFFFFF',      // Pure White Card
-  surfaceSecondary: '#F1F5F9', // Light Gray Fill
-  border: '#E2E8F0',       // Subtle Border
-  borderFocus: '#0284C7',
+  // UI Neutrals (White backgrounds & Dark readable text)
+  background: '#F8FAFC',   // Off-white Slate
+  surface: '#FFFFFF',      // Crisp White Surface
+  surfaceSecondary: '#F1F5F9', // Subtle Slate 100
+  border: '#CBD5E1',       // Crisp Industrial Border
+  borderLight: '#E2E8F0',
+  borderFocus: '#1769AA',
 
-  // Typography
-  textPrimary: '#0F172A',  // Slate 900
-  textSecondary: '#64748B',// Slate 500
-  textMuted: '#94A3B8',    // Slate 400
+  // High Readability Typography
+  textPrimary: '#0F172A',  // Dark Readable Slate 900
+  textSecondary: '#334155',// Slate 700
+  textMuted: '#64748B',    // Slate 500
   textInverse: '#FFFFFF',
 
-  // Status & Badges
+  // Badges & Status
   success: '#10B981',      // In stock
   successLight: '#DCFCE7',
-  warning: '#F59E0B',      // Low stock
+  warning: '#F59E0B',      // Low stock / Attention
   warningLight: '#FEF3C7',
-  danger: '#EF4444',       // Out of stock / Discount
+  danger: '#DC2626',       // Out of stock
   dangerLight: '#FEE2E2',
-  discountBadge: '#DC2626',
+  quoteBadge: '#0284C7',   // Price on Request Badge
+  discountBadge: '#B91C1C',
 
-  // Rating
+  // Ratings
   star: '#F59E0B',
 
-  // Shadows / Overlay
+  // Shadows
   shadow: 'rgba(15, 23, 42, 0.08)',
-  overlay: 'rgba(15, 23, 42, 0.5)',
+  overlay: 'rgba(15, 23, 42, 0.6)',
 };
 
 export const SPACING = {
@@ -83,7 +85,7 @@ export const TYPOGRAPHY = {
   },
   bodyMedium: {
     fontSize: 14,
-    fontWeight: '500' as const,
+    fontWeight: '600' as const,
     lineHeight: 20,
   },
   caption: {
