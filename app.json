@@ -8,7 +8,10 @@
     "userInterfaceStyle": "light",
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.audumbarmore.jagdambapp"
+      "bundleIdentifier": "com.audumbarmore.jagdambapp",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "package": "com.audumbarmore.jagdambapp",
