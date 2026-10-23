@@ -1,4 +1,5 @@
-import React, { createContext, useContext, useState, useMemo, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, useMemo, useCallback } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   Product,
   ProductCategory,
@@ -9,6 +10,13 @@ import {
   UserProfile,
 } from '../types/product';
 import { PRODUCTS } from '../data/products';
+import {
+  fetchLiveProducts,
+  saveQuotationEnquiry,
+  loadLocalEnquiries,
+  loadLocalCart,
+  saveLocalCart,
+} from '../lib/supabaseService';
 
 interface AppContextType {
   // Navigation & View state
@@ -18,8 +26,10 @@ interface AppContextType {
   setSelectedProduct: (product: Product | null) => void;
   quotationTargetProduct: Product | null;
   setQuotationTargetProduct: (product: Product | null) => void;
+  getProductById: (id: string) => Product | undefined;
 
-  // Search & Filter state
+  // Catalog state
+  products: Product[];
   searchQuery: string;
   setSearchQuery: (query: string) => void;
   selectedCategory: ProductCategory;
@@ -53,10 +63,10 @@ interface AppContextType {
 
   // Quotation Enquiries
   enquiries: QuotationEnquiry[];
-  submitEnquiry: (enquiry: Omit<QuotationEnquiry, 'id' | 'submittedAt'>) => void;
+  submitEnquiry: (enquiry: Omit<QuotationEnquiry, 'id' | 'submittedAt'>) => Promise<void>;
   requestProductQuote: (product: Product) => void;
 
-  // User Profile / Auth State (Phase 1 local, prepared for Supabase)
+  // User Profile / Auth State
   user: UserProfile;
   updateUserProfile: (profile: Partial<UserProfile>) => void;
   logoutUser: () => void;
@@ -77,6 +87,9 @@ const DEFAULT_USER: UserProfile = {
   isLoggedIn: true,
 };
 
+const WISHLIST_STORAGE_KEY = '@jagdamb_wishlist';
+const USER_STORAGE_KEY = '@jagdamb_user_profile';
+
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -85,6 +98,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [quotationTargetProduct, setQuotationTargetProduct] = useState<Product | null>(null);
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [selectedCategory, setSelectedCategory] = useState<ProductCategory>('all');
+  const [products, setProducts] = useState<Product[]>(PRODUCTS);
   const [cart, setCart] = useState<CartItem[]>([]);
   const [wishlist, setWishlist] = useState<WishlistItem[]>([]);
   const [enquiries, setEnquiries] = useState<QuotationEnquiry[]>([]);
@@ -92,22 +106,66 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
 
+  // Initialize data on mount
+  useEffect(() => {
+    let isMounted = true;
+    (async () => {
+      try {
+        const [savedCart, savedEnquiries, savedWishlist, savedUser, liveProducts] = await Promise.all([
+          loadLocalCart(),
+          loadLocalEnquiries(),
+          AsyncStorage.getItem(WISHLIST_STORAGE_KEY),
+          AsyncStorage.getItem(USER_STORAGE_KEY),
+          fetchLiveProducts(),
+        ]);
+
+        if (!isMounted) return;
+
+        if (savedCart && savedCart.length > 0) setCart(savedCart);
+        if (savedEnquiries && savedEnquiries.length > 0) setEnquiries(savedEnquiries);
+        if (savedWishlist) setWishlist(JSON.parse(savedWishlist));
+        if (savedUser) setUser(JSON.parse(savedUser));
+        if (liveProducts && liveProducts.length > 0) setProducts(liveProducts);
+      } catch (e) {
+        console.warn('Initialization error in AppProvider:', e);
+      }
+    })();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
   const showToast = useCallback((message: string) => {
     setToastMessage(message);
     setTimeout(() => {
       setToastMessage(null);
-    }, 2400);
+    }, 2500);
   }, []);
 
   const refreshProducts = useCallback(async () => {
     setIsLoading(true);
-    await new Promise((resolve) => setTimeout(resolve, 500));
-    setIsLoading(false);
-  }, []);
+    try {
+      const live = await fetchLiveProducts();
+      setProducts(live);
+      showToast('Equipment catalog updated');
+    } catch (err) {
+      console.warn('Catalog refresh failed:', err);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [showToast]);
+
+  const getProductById = useCallback(
+    (id: string): Product | undefined => {
+      return products.find((p) => p.id === id);
+    },
+    [products]
+  );
 
   // Filter products based on search and category
   const filteredProducts = useMemo(() => {
-    return PRODUCTS.filter((item) => {
+    return products.filter((item) => {
       const matchesCategory = selectedCategory === 'all' || item.category === selectedCategory;
       const q = searchQuery.trim().toLowerCase();
       const matchesSearch =
@@ -120,19 +178,16 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
       return matchesCategory && matchesSearch;
     });
-  }, [selectedCategory, searchQuery]);
+  }, [products, selectedCategory, searchQuery]);
 
   // Request Product Quote Helper
-  const requestProductQuote = useCallback(
-    (product: Product) => {
-      setQuotationTargetProduct(product);
-      setSelectedProduct(null);
-      setActiveTab('quote');
-    },
-    []
-  );
+  const requestProductQuote = useCallback((product: Product) => {
+    setQuotationTargetProduct(product);
+    setSelectedProduct(null);
+    setActiveTab('quote');
+  }, []);
 
-  // Cart Handlers
+  // Cart Handlers with persistent save
   const addToCart = useCallback(
     (product: Product, quantity: number = 1) => {
       if (!product.inStock) {
@@ -147,16 +202,19 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
       setCart((prev) => {
         const existing = prev.find((item) => item.product.id === product.id);
+        let updated: CartItem[];
         if (existing) {
           const newQty = existing.quantity + quantity;
           showToast(`Updated quantity: ${product.name.slice(0, 22)}... (${newQty})`);
-          return prev.map((item) =>
+          updated = prev.map((item) =>
             item.product.id === product.id ? { ...item, quantity: newQty } : item
           );
         } else {
           showToast(`Added to Cart: ${product.name.slice(0, 22)}...`);
-          return [...prev, { product, quantity, addedAt: Date.now() }];
+          updated = [...prev, { product, quantity, addedAt: Date.now() }];
         }
+        saveLocalCart(updated);
+        return updated;
       });
     },
     [showToast, requestProductQuote]
@@ -164,21 +222,30 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const updateCartQuantity = useCallback((productId: string, quantity: number) => {
     setCart((prev) => {
+      let updated: CartItem[];
       if (quantity <= 0) {
-        return prev.filter((item) => item.product.id !== productId);
+        updated = prev.filter((item) => item.product.id !== productId);
+      } else {
+        updated = prev.map((item) =>
+          item.product.id === productId ? { ...item, quantity } : item
+        );
       }
-      return prev.map((item) =>
-        item.product.id === productId ? { ...item, quantity } : item
-      );
+      saveLocalCart(updated);
+      return updated;
     });
   }, []);
 
   const removeFromCart = useCallback((productId: string) => {
-    setCart((prev) => prev.filter((item) => item.product.id !== productId));
+    setCart((prev) => {
+      const updated = prev.filter((item) => item.product.id !== productId);
+      saveLocalCart(updated);
+      return updated;
+    });
   }, []);
 
   const clearCart = useCallback(() => {
     setCart([]);
+    saveLocalCart([]);
   }, []);
 
   const getCartCount = useCallback(() => {
@@ -222,20 +289,27 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     (product: Product) => {
       setWishlist((prev) => {
         const exists = prev.some((item) => item.productId === product.id);
+        let updated: WishlistItem[];
         if (exists) {
           showToast(`Removed from Wishlist`);
-          return prev.filter((item) => item.productId !== product.id);
+          updated = prev.filter((item) => item.productId !== product.id);
         } else {
           showToast(`Added to Wishlist ❤️`);
-          return [...prev, { productId: product.id, product, addedAt: Date.now() }];
+          updated = [...prev, { productId: product.id, product, addedAt: Date.now() }];
         }
+        AsyncStorage.setItem(WISHLIST_STORAGE_KEY, JSON.stringify(updated)).catch(() => {});
+        return updated;
       });
     },
     [showToast]
   );
 
   const removeFromWishlist = useCallback((productId: string) => {
-    setWishlist((prev) => prev.filter((item) => item.productId !== productId));
+    setWishlist((prev) => {
+      const updated = prev.filter((item) => item.productId !== productId);
+      AsyncStorage.setItem(WISHLIST_STORAGE_KEY, JSON.stringify(updated)).catch(() => {});
+      return updated;
+    });
   }, []);
 
   const moveToCartFromWishlist = useCallback(
@@ -254,27 +328,35 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     [addToCart, removeFromWishlist, requestProductQuote, showToast]
   );
 
-  // Quotation Submission
+  // Quotation Submission with Supabase + Local Sync
   const submitEnquiry = useCallback(
-    (enquiryData: Omit<QuotationEnquiry, 'id' | 'submittedAt'>) => {
-      const newEnquiry: QuotationEnquiry = {
-        ...enquiryData,
-        id: `ENQ-${Date.now().toString().slice(-6)}`,
-        submittedAt: Date.now(),
-      };
-      setEnquiries((prev) => [newEnquiry, ...prev]);
-      showToast(`Quotation Enquiry ${newEnquiry.id} Submitted!`);
+    async (enquiryData: Omit<QuotationEnquiry, 'id' | 'submittedAt'>) => {
+      try {
+        const saved = await saveQuotationEnquiry(enquiryData);
+        setEnquiries((prev) => [saved, ...prev]);
+        showToast(`Quotation Enquiry Submitted! Baramati team notified.`);
+      } catch (err) {
+        showToast(`Failed to record quotation.`);
+      }
     },
     [showToast]
   );
 
   // User Profile
   const updateUserProfile = useCallback((profile: Partial<UserProfile>) => {
-    setUser((prev) => ({ ...prev, ...profile }));
+    setUser((prev) => {
+      const updated = { ...prev, ...profile };
+      AsyncStorage.setItem(USER_STORAGE_KEY, JSON.stringify(updated)).catch(() => {});
+      return updated;
+    });
   }, []);
 
   const logoutUser = useCallback(() => {
-    setUser((prev) => ({ ...prev, isLoggedIn: false }));
+    setUser((prev) => {
+      const updated = { ...prev, isLoggedIn: false };
+      AsyncStorage.setItem(USER_STORAGE_KEY, JSON.stringify(updated)).catch(() => {});
+      return updated;
+    });
   }, []);
 
   return (
@@ -286,6 +368,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         setSelectedProduct,
         quotationTargetProduct,
         setQuotationTargetProduct,
+        getProductById,
+        products,
         searchQuery,
         setSearchQuery,
         selectedCategory,

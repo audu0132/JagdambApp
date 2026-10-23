@@ -1,10 +1,13 @@
 import React from 'react';
 import { View, Text, StyleSheet, Image, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { router } from 'expo-router';
 import { Product } from '../types/product';
 import { COLORS, SPACING, RADIUS, TYPOGRAPHY } from '../constants/theme';
 import { useApp } from '../context/AppContext';
+import { useLanguage } from '../context/LanguageContext';
 import { QuantityControl } from './QuantityControl';
+import { openWhatsAppEnquiry } from '../lib/supabaseService';
 
 interface ProductCardProps {
   product: Product;
@@ -21,6 +24,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onPress }) =>
     toggleWishlist,
     requestProductQuote,
   } = useApp();
+  const { language, t } = useLanguage();
 
   const isWishlisted = isInWishlist(product.id);
   const cartQty = getCartItemQuantity(product.id);
@@ -31,12 +35,23 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onPress }) =>
       onPress();
     } else {
       setSelectedProduct(product);
+      try {
+        router.push({
+          pathname: '/product/[id]',
+          params: { id: product.id },
+        });
+      } catch (e) {
+        // Fallback handled by state
+      }
     }
   };
 
+  const displayName = language === 'mr' && product.marathiName ? product.marathiName : product.name;
+  const secondaryName = language === 'mr' ? product.name : product.marathiName;
+
   const formattedPrice = product.price
     ? `₹${product.price.toLocaleString('en-IN')}`
-    : 'Price on Request';
+    : t('priceOnRequest');
   const formattedOriginalPrice = product.originalPrice
     ? `₹${product.originalPrice.toLocaleString('en-IN')}`
     : null;
@@ -46,7 +61,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onPress }) =>
       style={styles.card}
       onPress={handleCardPress}
       activeOpacity={0.88}
-      accessibilityLabel={`${product.name}, ${formattedPrice}`}
+      accessibilityLabel={`${displayName}, ${formattedPrice}`}
       accessibilityRole="button"
     >
       {/* Product Image Area */}
@@ -57,7 +72,9 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onPress }) =>
         <View style={styles.badgesRow}>
           {isOnRequest ? (
             <View style={styles.quoteBadge}>
-              <Text style={styles.quoteBadgeText}>QUOTE REQUIRED</Text>
+              <Text style={styles.quoteBadgeText}>
+                {language === 'mr' ? 'कोटेशन हवे' : 'QUOTE REQUIRED'}
+              </Text>
             </View>
           ) : product.discountPercent && product.discountPercent > 0 ? (
             <View style={styles.discountBadge}>
@@ -67,7 +84,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onPress }) =>
 
           {product.isBestSeller && (
             <View style={styles.bestSellerBadge}>
-              <Text style={styles.bestSellerText}>POPULAR</Text>
+              <Text style={styles.bestSellerText}>{t('bestSeller')}</Text>
             </View>
           )}
         </View>
@@ -82,7 +99,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onPress }) =>
         >
           <Ionicons
             name={isWishlisted ? 'heart' : 'heart-outline'}
-            size={20}
+            size={19}
             color={isWishlisted ? COLORS.discountBadge : COLORS.textSecondary}
           />
         </TouchableOpacity>
@@ -90,7 +107,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onPress }) =>
         {/* Out of Stock Overlay */}
         {!product.inStock && (
           <View style={styles.outOfStockOverlay}>
-            <Text style={styles.outOfStockText}>OUT OF STOCK</Text>
+            <Text style={styles.outOfStockText}>{t('outOfStock')}</Text>
           </View>
         )}
       </View>
@@ -113,38 +130,40 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onPress }) =>
                 { color: product.inStock ? COLORS.success : COLORS.danger },
               ]}
             >
-              {product.inStock ? 'Available' : 'Sold Out'}
+              {product.inStock ? t('inStock') : t('outOfStock')}
             </Text>
           </View>
         </View>
 
         {/* Product Title */}
         <Text style={styles.title} numberOfLines={2}>
-          {product.name}
+          {displayName}
         </Text>
 
-        {/* Marathi Subtitle */}
-        {product.marathiName && (
-          <Text style={styles.marathiTitle} numberOfLines={1}>
-            {product.marathiName}
+        {/* Secondary Name */}
+        {secondaryName && (
+          <Text style={styles.secondaryTitle} numberOfLines={1}>
+            {secondaryName}
           </Text>
         )}
 
         {/* Rating Row */}
         <View style={styles.ratingRow}>
           <View style={styles.starBox}>
-            <Ionicons name="star" size={13} color={COLORS.star} />
+            <Ionicons name="star" size={12} color={COLORS.star} />
             <Text style={styles.ratingText}>{product.rating.toFixed(1)}</Text>
           </View>
-          <Text style={styles.reviewCount}>({product.reviewCount} reviews)</Text>
+          <Text style={styles.reviewCount}>
+            ({product.reviewCount} {t('reviews')})
+          </Text>
         </View>
 
         {/* Price Section */}
         <View style={styles.priceRow}>
           {isOnRequest ? (
             <View style={styles.onRequestRow}>
-              <Ionicons name="chatbubbles-outline" size={16} color={COLORS.primary} />
-              <Text style={styles.onRequestText}>Price on Request</Text>
+              <Ionicons name="chatbubbles-outline" size={15} color={COLORS.primary} />
+              <Text style={styles.onRequestText}>{t('priceOnRequest')}</Text>
             </View>
           ) : (
             <>
@@ -159,14 +178,24 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onPress }) =>
         {/* Action Button: Add to Cart OR Request Quote */}
         <View style={styles.actionContainer}>
           {isOnRequest ? (
-            <TouchableOpacity
-              style={styles.quoteBtn}
-              onPress={() => requestProductQuote(product)}
-              activeOpacity={0.8}
-            >
-              <Ionicons name="document-text-outline" size={15} color={COLORS.primaryDark} />
-              <Text style={styles.quoteBtnText}>Request Quote</Text>
-            </TouchableOpacity>
+            <View style={styles.quoteButtonGroup}>
+              <TouchableOpacity
+                style={styles.quoteBtn}
+                onPress={() => requestProductQuote(product)}
+                activeOpacity={0.8}
+              >
+                <Ionicons name="document-text-outline" size={14} color={COLORS.primaryDark} />
+                <Text style={styles.quoteBtnText}>{t('requestQuote')}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.whatsappCardBtn}
+                onPress={() => openWhatsAppEnquiry(product.name, product.modelNumber)}
+                activeOpacity={0.8}
+                accessibilityLabel="WhatsApp Quote"
+              >
+                <Ionicons name="logo-whatsapp" size={16} color="#15803D" />
+              </TouchableOpacity>
+            </View>
           ) : cartQty > 0 ? (
             <View style={styles.quantityRow}>
               <QuantityControl
@@ -175,7 +204,9 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onPress }) =>
                 onDecrement={() => updateCartQuantity(product.id, cartQty - 1)}
                 size="small"
               />
-              <Text style={styles.inCartNote}>In Cart</Text>
+              <Text style={styles.inCartNote}>
+                {language === 'mr' ? 'कार्टमध्ये' : 'In Cart'}
+              </Text>
             </View>
           ) : (
             <TouchableOpacity
@@ -189,7 +220,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onPress }) =>
             >
               <Ionicons
                 name="cart-outline"
-                size={16}
+                size={15}
                 color={product.inStock ? COLORS.textInverse : COLORS.textMuted}
               />
               <Text
@@ -198,7 +229,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onPress }) =>
                   !product.inStock && styles.addToCartTextDisabled,
                 ]}
               >
-                {product.inStock ? 'Add to Cart' : 'Unavailable'}
+                {t('addToCart')}
               </Text>
             </TouchableOpacity>
           )}
@@ -212,21 +243,21 @@ const styles = StyleSheet.create({
   card: {
     backgroundColor: COLORS.surface,
     borderRadius: RADIUS.lg,
+    overflow: 'hidden',
     borderWidth: 1,
     borderColor: COLORS.borderLight,
-    overflow: 'hidden',
-    marginBottom: SPACING.md,
+    marginBottom: SPACING.lg,
     shadowColor: COLORS.shadow,
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 5,
+    shadowOpacity: 0.08,
+    shadowRadius: 6,
     elevation: 2,
   },
   imageContainer: {
+    position: 'relative',
     width: '100%',
     height: 175,
     backgroundColor: COLORS.surfaceSecondary,
-    position: 'relative',
   },
   image: {
     width: '100%',
@@ -236,60 +267,58 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: SPACING.sm,
     left: SPACING.sm,
+    flexDirection: 'column',
     gap: 4,
-    zIndex: 2,
   },
   quoteBadge: {
-    backgroundColor: COLORS.primaryDark,
-    paddingHorizontal: SPACING.sm,
+    backgroundColor: COLORS.quoteBadge,
+    paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: RADIUS.xs,
   },
   quoteBadgeText: {
-    color: COLORS.textInverse,
+    color: COLORS.surface,
     fontSize: 9,
     fontWeight: '800',
-    letterSpacing: 0.4,
+    letterSpacing: 0.5,
   },
   discountBadge: {
     backgroundColor: COLORS.discountBadge,
-    paddingHorizontal: SPACING.sm,
+    paddingHorizontal: 7,
     paddingVertical: 3,
     borderRadius: RADIUS.xs,
   },
   discountText: {
-    color: COLORS.textInverse,
+    color: COLORS.surface,
     fontSize: 10,
     fontWeight: '800',
-    letterSpacing: 0.4,
   },
   bestSellerBadge: {
     backgroundColor: COLORS.warning,
-    paddingHorizontal: SPACING.sm,
+    paddingHorizontal: 7,
     paddingVertical: 3,
     borderRadius: RADIUS.xs,
   },
   bestSellerText: {
-    color: COLORS.textInverse,
+    color: '#78350F',
     fontSize: 9,
     fontWeight: '800',
-    letterSpacing: 0.4,
+    letterSpacing: 0.5,
   },
   wishlistBtn: {
     position: 'absolute',
     top: SPACING.sm,
     right: SPACING.sm,
-    width: 34,
-    height: 34,
-    borderRadius: RADIUS.full,
     backgroundColor: 'rgba(255, 255, 255, 0.92)',
+    width: 32,
+    height: 32,
+    borderRadius: RADIUS.full,
     alignItems: 'center',
     justifyContent: 'center',
-    zIndex: 3,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.12,
-    shadowRadius: 3,
+    shadowOpacity: 0.15,
+    shadowRadius: 2,
     elevation: 2,
   },
   outOfStockOverlay: {
@@ -298,28 +327,23 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: 'rgba(15, 23, 42, 0.65)',
+    backgroundColor: 'rgba(15, 23, 42, 0.6)',
     alignItems: 'center',
     justifyContent: 'center',
-    zIndex: 2,
   },
   outOfStockText: {
-    color: COLORS.textInverse,
-    fontWeight: '800',
+    color: COLORS.surface,
     fontSize: 13,
+    fontWeight: '800',
     letterSpacing: 1,
-    paddingHorizontal: SPACING.md,
-    paddingVertical: 6,
-    borderRadius: RADIUS.xs,
-    backgroundColor: 'rgba(220, 38, 38, 0.9)',
   },
   content: {
     padding: SPACING.md,
   },
   metaRow: {
     flexDirection: 'row',
-    alignItems: 'center',
     justifyContent: 'space-between',
+    alignItems: 'center',
     marginBottom: 4,
   },
   brandText: {
@@ -344,102 +368,120 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   title: {
-    ...TYPOGRAPHY.h3,
+    fontSize: 14,
+    fontWeight: '700',
     color: COLORS.textPrimary,
-    minHeight: 44,
+    lineHeight: 19,
+    marginBottom: 2,
   },
-  marathiTitle: {
+  secondaryTitle: {
     fontSize: 12,
-    color: COLORS.textSecondary,
-    marginBottom: 4,
+    color: COLORS.textMuted,
+    fontWeight: '500',
+    marginBottom: 6,
   },
   ratingRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    marginBottom: SPACING.sm,
+    marginBottom: 8,
   },
   starBox: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 3,
-    backgroundColor: COLORS.warningLight,
+    backgroundColor: '#FEF3C7',
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: RADIUS.xs,
+    gap: 3,
   },
   ratingText: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '700',
-    color: COLORS.textPrimary,
+    color: '#92400E',
   },
   reviewCount: {
-    ...TYPOGRAPHY.caption,
+    fontSize: 11,
     color: COLORS.textMuted,
   },
   priceRow: {
     flexDirection: 'row',
     alignItems: 'baseline',
-    gap: SPACING.sm,
-    marginBottom: SPACING.md,
+    gap: 8,
+    marginBottom: 10,
+    minHeight: 24,
   },
   price: {
-    fontSize: 18,
+    fontSize: 17,
     fontWeight: '800',
     color: COLORS.textPrimary,
   },
   originalPrice: {
-    fontSize: 13,
+    fontSize: 12,
     color: COLORS.textMuted,
     textDecorationLine: 'line-through',
   },
   onRequestRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: 5,
   },
   onRequestText: {
-    fontSize: 15,
-    fontWeight: '800',
+    fontSize: 14,
+    fontWeight: '700',
     color: COLORS.primary,
   },
   actionContainer: {
     marginTop: 2,
   },
+  quoteButtonGroup: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
   quoteBtn: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: COLORS.primaryLight,
-    borderWidth: 1.5,
-    borderColor: COLORS.primary,
     paddingVertical: 9,
     borderRadius: RADIUS.md,
     gap: 6,
+    borderWidth: 1,
+    borderColor: '#BAE6FD',
   },
   quoteBtnText: {
-    color: COLORS.primaryDark,
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '700',
+    color: COLORS.primaryDark,
+  },
+  whatsappCardBtn: {
+    width: 38,
+    height: 38,
+    borderRadius: RADIUS.md,
+    backgroundColor: '#DCFCE7',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: '#86EFAC',
   },
   addToCartBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: COLORS.primary,
-    paddingVertical: 10,
+    paddingVertical: 9,
     borderRadius: RADIUS.md,
     gap: 6,
   },
   addToCartBtnDisabled: {
     backgroundColor: COLORS.surfaceSecondary,
-    borderWidth: 1,
-    borderColor: COLORS.borderLight,
   },
   addToCartText: {
-    color: COLORS.textInverse,
     fontSize: 13,
     fontWeight: '700',
+    color: COLORS.surface,
   },
   addToCartTextDisabled: {
     color: COLORS.textMuted,

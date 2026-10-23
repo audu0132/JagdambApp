@@ -10,12 +10,14 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, SPACING, RADIUS, TYPOGRAPHY } from '../constants/theme';
 import { useApp } from '../context/AppContext';
+import { useLanguage } from '../context/LanguageContext';
 import { SearchBar } from '../components/SearchBar';
 import { BannerCarousel } from '../components/BannerCarousel';
 import { CategoryList } from '../components/CategoryList';
 import { ProductCard } from '../components/ProductCard';
 import { EmptyState } from '../components/EmptyState';
 import { LoadingSkeleton } from '../components/LoadingSkeleton';
+import { openWhatsAppEnquiry, callBaramatiShowroom } from '../lib/supabaseService';
 
 type QuickFilter = 'all' | 'bestsellers' | 'offers' | 'top-rated';
 
@@ -28,6 +30,7 @@ export const HomeScreen: React.FC = () => {
     setSearchQuery,
     searchQuery,
   } = useApp();
+  const { language, t } = useLanguage();
 
   const [refreshing, setRefreshing] = useState(false);
   const [quickFilter, setQuickFilter] = useState<QuickFilter>('all');
@@ -72,11 +75,46 @@ export const HomeScreen: React.FC = () => {
           />
         }
       >
-        {/* Only show hero promo banners when not actively searching */}
+        {/* Hero promo banners & quick categories when not actively searching */}
         {searchQuery.trim() === '' && (
           <>
             <BannerCarousel />
             <CategoryList />
+
+            {/* Quick Farmer Helpline Card */}
+            <View style={styles.helplineBanner}>
+              <View style={styles.helplineLeft}>
+                <Ionicons name="chatbubbles" size={24} color={COLORS.primary} />
+                <View>
+                  <Text style={styles.helplineTitle}>
+                    {language === 'mr' ? 'बारामती शेतकरी हेल्पलाइन' : 'Baramati Farmer Helpline'}
+                  </Text>
+                  <Text style={styles.helplineSubtitle}>
+                    {language === 'mr'
+                      ? 'मिल्किंग मशिनरी सल्ला व तंत्रज्ञ सहाय्य'
+                      : 'Free machinery guidance & technician support'}
+                  </Text>
+                </View>
+              </View>
+              <View style={styles.helplineButtons}>
+                <TouchableOpacity
+                  style={styles.waBtn}
+                  onPress={() => openWhatsAppEnquiry()}
+                  activeOpacity={0.8}
+                >
+                  <Ionicons name="logo-whatsapp" size={16} color="#FFFFFF" />
+                  <Text style={styles.waBtnText}>WhatsApp</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.callBtn}
+                  onPress={callBaramatiShowroom}
+                  activeOpacity={0.8}
+                >
+                  <Ionicons name="call" size={15} color={COLORS.primary} />
+                  <Text style={styles.callBtnText}>Call</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
           </>
         )}
 
@@ -85,138 +123,133 @@ export const HomeScreen: React.FC = () => {
           <View style={styles.filtersHeader}>
             <View>
               <Text style={styles.sectionTitle}>
-                {searchQuery ? 'Search Results' : 'Dairy Catalog'}
+                {searchQuery
+                  ? language === 'mr'
+                    ? 'शोध परिणाम'
+                    : 'Search Results'
+                  : language === 'mr'
+                  ? 'डेअरी उपकरण कॅटलॉग'
+                  : 'Dairy Equipment Catalog'}
               </Text>
               <Text style={styles.sectionSubtitle}>
-                {displayedProducts.length} items available
+                {t('resultsCount', { count: displayedProducts.length })}
               </Text>
             </View>
 
             {(searchQuery !== '' || quickFilter !== 'all') && (
               <TouchableOpacity onPress={clearFilters} style={styles.resetBtn}>
-                <Text style={styles.resetText}>Reset</Text>
+                <Text style={styles.resetText}>{t('clearSearch')}</Text>
               </TouchableOpacity>
             )}
           </View>
 
+          {/* Filter Pills */}
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.filterChipsRow}
+            contentContainerStyle={styles.filterPillsContainer}
           >
             <TouchableOpacity
               style={[
-                styles.filterChip,
-                quickFilter === 'all' && styles.filterChipActive,
+                styles.filterPill,
+                quickFilter === 'all' && styles.filterPillActive,
               ]}
               onPress={() => setQuickFilter('all')}
+              activeOpacity={0.7}
             >
               <Text
                 style={[
-                  styles.filterChipText,
-                  quickFilter === 'all' && styles.filterChipTextActive,
+                  styles.filterPillText,
+                  quickFilter === 'all' && styles.filterPillTextActive,
                 ]}
               >
-                All Products
+                {t('filterAll')}
               </Text>
             </TouchableOpacity>
 
             <TouchableOpacity
               style={[
-                styles.filterChip,
-                quickFilter === 'bestsellers' && styles.filterChipActive,
+                styles.filterPill,
+                quickFilter === 'bestsellers' && styles.filterPillActive,
               ]}
               onPress={() => setQuickFilter('bestsellers')}
+              activeOpacity={0.7}
             >
-              <Ionicons
-                name="flame"
-                size={14}
-                color={quickFilter === 'bestsellers' ? COLORS.textInverse : COLORS.warning}
-              />
               <Text
                 style={[
-                  styles.filterChipText,
-                  quickFilter === 'bestsellers' && styles.filterChipTextActive,
+                  styles.filterPillText,
+                  quickFilter === 'bestsellers' && styles.filterPillTextActive,
                 ]}
               >
-                Best Sellers
+                {t('filterPopular')}
               </Text>
             </TouchableOpacity>
 
             <TouchableOpacity
               style={[
-                styles.filterChip,
-                quickFilter === 'offers' && styles.filterChipActive,
+                styles.filterPill,
+                quickFilter === 'offers' && styles.filterPillActive,
               ]}
               onPress={() => setQuickFilter('offers')}
+              activeOpacity={0.7}
             >
-              <Ionicons
-                name="pricetag"
-                size={13}
-                color={quickFilter === 'offers' ? COLORS.textInverse : COLORS.discountBadge}
-              />
               <Text
                 style={[
-                  styles.filterChipText,
-                  quickFilter === 'offers' && styles.filterChipTextActive,
+                  styles.filterPillText,
+                  quickFilter === 'offers' && styles.filterPillTextActive,
                 ]}
               >
-                15%+ Off
+                {t('filterDiscount')}
               </Text>
             </TouchableOpacity>
 
             <TouchableOpacity
               style={[
-                styles.filterChip,
-                quickFilter === 'top-rated' && styles.filterChipActive,
+                styles.filterPill,
+                quickFilter === 'top-rated' && styles.filterPillActive,
               ]}
               onPress={() => setQuickFilter('top-rated')}
+              activeOpacity={0.7}
             >
-              <Ionicons
-                name="star"
-                size={13}
-                color={quickFilter === 'top-rated' ? COLORS.textInverse : COLORS.star}
-              />
               <Text
                 style={[
-                  styles.filterChipText,
-                  quickFilter === 'top-rated' && styles.filterChipTextActive,
+                  styles.filterPillText,
+                  quickFilter === 'top-rated' && styles.filterPillTextActive,
                 ]}
               >
-                4.8★ & Above
+                {t('filterHighRated')}
               </Text>
             </TouchableOpacity>
           </ScrollView>
         </View>
 
-        {/* Product List or Loading/Empty States */}
-        {isLoading ? (
-          <LoadingSkeleton message="Updating dairy catalog..." />
-        ) : displayedProducts.length === 0 ? (
-          <EmptyState
-            icon="search-outline"
-            title="No Products Found"
-            subtitle="We couldn't find matching dairy equipment. Try clearing your search or picking another category."
-            actionLabel="View All Products"
-            onAction={clearFilters}
-          />
-        ) : (
-          <View style={styles.productsGrid}>
-            {displayedProducts.map((product) => (
+        {/* Product Grid Area */}
+        <View style={styles.productsSection}>
+          {isLoading ? (
+            <LoadingSkeleton
+              message={
+                language === 'mr'
+                  ? 'डेअरी उपकरणे लोड होत आहेत...'
+                  : 'Loading dairy equipment...'
+              }
+            />
+          ) : displayedProducts.length === 0 ? (
+            <EmptyState
+              icon="search-outline"
+              title={t('noResults')}
+              subtitle={
+                language === 'mr'
+                  ? 'कृपया वेगळे नाव टाकून शोधा किंवा फिल्टर रीसेट करा.'
+                  : 'Try searching with different terms or reset your filters.'
+              }
+              actionLabel={t('clearSearch')}
+              onAction={clearFilters}
+            />
+          ) : (
+            displayedProducts.map((product) => (
               <ProductCard key={product.id} product={product} />
-            ))}
-          </View>
-        )}
-
-        {/* Footer Guarantee Info */}
-        <View style={styles.footerNote}>
-          <Ionicons name="shield-checkmark" size={20} color={COLORS.accent} />
-          <View style={styles.footerTextContainer}>
-            <Text style={styles.footerTitle}>Jagdamb Enterprises Assurance</Text>
-            <Text style={styles.footerDesc}>
-              Direct manufacturer pricing, genuine spare parts, & 100% Baramati technician assistance.
-            </Text>
-          </View>
+            ))
+          )}
         </View>
       </ScrollView>
     </View>
@@ -231,87 +264,127 @@ const styles = StyleSheet.create({
   scrollContent: {
     paddingBottom: SPACING.xxxl,
   },
-  filtersSection: {
-    paddingHorizontal: SPACING.lg,
+  helplineBanner: {
+    marginHorizontal: SPACING.lg,
     marginVertical: SPACING.sm,
+    backgroundColor: '#EFF6FF',
+    borderWidth: 1,
+    borderColor: '#BFDBFE',
+    borderRadius: RADIUS.lg,
+    padding: SPACING.md,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 8,
+  },
+  helplineLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    flex: 1,
+  },
+  helplineTitle: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: COLORS.primaryDark,
+  },
+  helplineSubtitle: {
+    fontSize: 11,
+    color: COLORS.textSecondary,
+    marginTop: 1,
+  },
+  helplineButtons: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  waBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#25D366',
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    borderRadius: RADIUS.md,
+  },
+  waBtnText: {
+    color: '#FFFFFF',
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  callBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: COLORS.surface,
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    borderRadius: RADIUS.md,
+    borderWidth: 1,
+    borderColor: COLORS.borderLight,
+  },
+  callBtnText: {
+    color: COLORS.primary,
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  filtersSection: {
+    marginTop: SPACING.md,
+    marginBottom: SPACING.sm,
   },
   filtersHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    paddingHorizontal: SPACING.lg,
     marginBottom: SPACING.sm,
   },
   sectionTitle: {
-    ...TYPOGRAPHY.h2,
+    ...TYPOGRAPHY.h3,
     color: COLORS.textPrimary,
   },
   sectionSubtitle: {
     ...TYPOGRAPHY.caption,
-    color: COLORS.textSecondary,
-    marginTop: 1,
+    color: COLORS.textMuted,
   },
   resetBtn: {
-    paddingHorizontal: SPACING.sm,
     paddingVertical: 4,
+    paddingHorizontal: 8,
+    borderRadius: RADIUS.sm,
+    backgroundColor: COLORS.surfaceSecondary,
   },
   resetText: {
-    fontSize: 13,
-    fontWeight: '700',
+    fontSize: 12,
+    fontWeight: '600',
     color: COLORS.primary,
   },
-  filterChipsRow: {
-    gap: SPACING.sm,
-    paddingVertical: 2,
+  filterPillsContainer: {
+    paddingHorizontal: SPACING.lg,
+    gap: 8,
   },
-  filterChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: SPACING.md,
-    paddingVertical: 7,
+  filterPill: {
+    paddingVertical: 6,
+    paddingHorizontal: 12,
     borderRadius: RADIUS.full,
     backgroundColor: COLORS.surface,
     borderWidth: 1,
-    borderColor: COLORS.border,
-    gap: 5,
+    borderColor: COLORS.borderLight,
   },
-  filterChipActive: {
-    backgroundColor: COLORS.primaryDark,
-    borderColor: COLORS.primaryDark,
+  filterPillActive: {
+    backgroundColor: COLORS.primaryLight,
+    borderColor: COLORS.primary,
   },
-  filterChipText: {
+  filterPillText: {
     fontSize: 12,
     fontWeight: '600',
-    color: COLORS.textPrimary,
+    color: COLORS.textSecondary,
   },
-  filterChipTextActive: {
-    color: COLORS.textInverse,
+  filterPillTextActive: {
+    color: COLORS.primaryDark,
+    fontWeight: '700',
   },
-  productsGrid: {
+  productsSection: {
     paddingHorizontal: SPACING.lg,
     marginTop: SPACING.sm,
-  },
-  footerNote: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    backgroundColor: COLORS.accentLight,
-    marginHorizontal: SPACING.lg,
-    marginTop: SPACING.lg,
-    padding: SPACING.md,
-    borderRadius: RADIUS.lg,
-    gap: SPACING.sm,
-  },
-  footerTextContainer: {
-    flex: 1,
-  },
-  footerTitle: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: COLORS.accent,
-    marginBottom: 2,
-  },
-  footerDesc: {
-    fontSize: 11,
-    color: COLORS.textSecondary,
-    lineHeight: 16,
   },
 });

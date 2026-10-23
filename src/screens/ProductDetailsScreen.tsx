@@ -6,16 +6,27 @@ import {
   ScrollView,
   Image,
   TouchableOpacity,
-  Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { router } from 'expo-router';
 import { COLORS, SPACING, RADIUS, TYPOGRAPHY } from '../constants/theme';
 import { useApp } from '../context/AppContext';
+import { useLanguage } from '../context/LanguageContext';
 import { QuantityControl } from '../components/QuantityControl';
+import { openWhatsAppEnquiry, callBaramatiShowroom } from '../lib/supabaseService';
+import { Product } from '../types/product';
 
-export const ProductDetailsScreen: React.FC = () => {
+interface ProductDetailsScreenProps {
+  product?: Product;
+  onBack?: () => void;
+}
+
+export const ProductDetailsScreen: React.FC<ProductDetailsScreenProps> = ({
+  product: propProduct,
+  onBack,
+}) => {
   const {
-    selectedProduct,
+    selectedProduct: contextProduct,
     setSelectedProduct,
     addToCart,
     cart,
@@ -24,43 +35,68 @@ export const ProductDetailsScreen: React.FC = () => {
     setActiveTab,
     requestProductQuote,
   } = useApp();
+  const { language, t } = useLanguage();
 
+  const product = propProduct || contextProduct;
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [localQuantity, setLocalQuantity] = useState<number>(1);
 
-  if (!selectedProduct) return null;
+  if (!product) {
+    return (
+      <View style={styles.emptyContainer}>
+        <Text style={styles.emptyText}>Equipment not found</Text>
+        <TouchableOpacity
+          style={styles.backHomeBtn}
+          onPress={() => {
+            if (onBack) onBack();
+            else {
+              setSelectedProduct(null);
+              try { router.back(); } catch (e) {}
+            }
+          }}
+        >
+          <Text style={styles.backHomeBtnText}>Go Back</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
 
-  const isWishlisted = isInWishlist(selectedProduct.id);
-  const cartItem = cart.find((item) => item.product.id === selectedProduct.id);
-  const currentImageUri = selectedImage || selectedProduct.image;
-  const isOnRequest = selectedProduct.priceType === 'on-request';
+  const isWishlisted = isInWishlist(product.id);
+  const cartItem = cart.find((item) => item.product.id === product.id);
+  const currentImageUri = selectedImage || product.image;
+  const isOnRequest = product.priceType === 'on-request';
 
-  const imagesList = [
-    selectedProduct.image,
-    ...(selectedProduct.additionalImages || []),
-  ];
+  const imagesList = [product.image, ...(product.additionalImages || [])];
 
-  const formattedPrice = selectedProduct.price
-    ? `₹${selectedProduct.price.toLocaleString('en-IN')}`
-    : 'Price on Request';
-  const formattedOriginalPrice = selectedProduct.originalPrice
-    ? `₹${selectedProduct.originalPrice.toLocaleString('en-IN')}`
+  const displayName = language === 'mr' && product.marathiName ? product.marathiName : product.name;
+  const secondaryName = language === 'mr' ? product.name : product.marathiName;
+
+  const formattedPrice = product.price
+    ? `₹${product.price.toLocaleString('en-IN')}`
+    : t('priceOnRequest');
+  const formattedOriginalPrice = product.originalPrice
+    ? `₹${product.originalPrice.toLocaleString('en-IN')}`
     : null;
   const savings =
-    selectedProduct.originalPrice && selectedProduct.price
-      ? selectedProduct.originalPrice - selectedProduct.price
+    product.originalPrice && product.price
+      ? product.originalPrice - product.price
       : 0;
 
-  const handleAddToCart = () => {
-    addToCart(selectedProduct, localQuantity);
+  const handleBack = () => {
+    if (onBack) {
+      onBack();
+    } else {
+      setSelectedProduct(null);
+      try {
+        router.back();
+      } catch (e) {
+        // Fallback
+      }
+    }
   };
 
-  const handleInquire = () => {
-    Alert.alert(
-      'Jagdamb Enterprises — Baramati Direct Contact',
-      `Interested in ${selectedProduct.name} (Model: ${selectedProduct.modelNumber})?\n\n📍 Visit: Shop 2, Jamdar Nagar, Near PDCC Bank, Kasba, Baramati - 413102\n📞 Call: +91 98220 XXXXX for direct quotes and farm delivery.`,
-      [{ text: 'Close', style: 'cancel' }]
-    );
+  const handleAddToCart = () => {
+    addToCart(product, localQuantity);
   };
 
   return (
@@ -69,7 +105,7 @@ export const ProductDetailsScreen: React.FC = () => {
       <View style={styles.header}>
         <TouchableOpacity
           style={styles.backButton}
-          onPress={() => setSelectedProduct(null)}
+          onPress={handleBack}
           hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           accessibilityLabel="Back to products"
         >
@@ -77,18 +113,18 @@ export const ProductDetailsScreen: React.FC = () => {
         </TouchableOpacity>
 
         <Text style={styles.headerTitle} numberOfLines={1}>
-          {selectedProduct.brand}
+          {product.brand}
         </Text>
 
         <View style={styles.headerActions}>
           <TouchableOpacity
             style={styles.headerIconBtn}
-            onPress={() => toggleWishlist(selectedProduct)}
+            onPress={() => toggleWishlist(product)}
             accessibilityLabel={isWishlisted ? 'Remove from wishlist' : 'Add to wishlist'}
           >
             <Ionicons
               name={isWishlisted ? 'heart' : 'heart-outline'}
-              size={24}
+              size={22}
               color={isWishlisted ? COLORS.discountBadge : COLORS.textPrimary}
             />
           </TouchableOpacity>
@@ -98,10 +134,11 @@ export const ProductDetailsScreen: React.FC = () => {
             onPress={() => {
               setSelectedProduct(null);
               setActiveTab('cart');
+              try { router.push('/(tabs)/cart'); } catch (e) {}
             }}
             accessibilityLabel="Go to cart"
           >
-            <Ionicons name="cart-outline" size={24} color={COLORS.textPrimary} />
+            <Ionicons name="cart-outline" size={22} color={COLORS.textPrimary} />
           </TouchableOpacity>
         </View>
       </View>
@@ -113,12 +150,14 @@ export const ProductDetailsScreen: React.FC = () => {
 
           {isOnRequest ? (
             <View style={styles.quoteBadge}>
-              <Text style={styles.quoteBadgeText}>QUOTE ON REQUEST</Text>
+              <Text style={styles.quoteBadgeText}>
+                {language === 'mr' ? 'मागणीनुसार दर' : 'QUOTE ON REQUEST'}
+              </Text>
             </View>
-          ) : selectedProduct.discountPercent && selectedProduct.discountPercent > 0 ? (
+          ) : product.discountPercent && product.discountPercent > 0 ? (
             <View style={styles.discountBadge}>
               <Text style={styles.discountBadgeText}>
-                {selectedProduct.discountPercent}% OFF
+                {product.discountPercent}% OFF
               </Text>
             </View>
           ) : null}
@@ -144,45 +183,47 @@ export const ProductDetailsScreen: React.FC = () => {
         {/* Product Info Block */}
         <View style={styles.infoSection}>
           <View style={styles.metaRow}>
-            <Text style={styles.brandTag}>{selectedProduct.brand}</Text>
-            <Text style={styles.modelTag}>Model: {selectedProduct.modelNumber}</Text>
+            <Text style={styles.brandTag}>{product.brand}</Text>
+            <Text style={styles.modelTag}>Model: {product.modelNumber}</Text>
           </View>
 
-          <Text style={styles.productTitle}>{selectedProduct.name}</Text>
-          {selectedProduct.marathiName && (
-            <Text style={styles.productMarathiTitle}>{selectedProduct.marathiName}</Text>
+          <Text style={styles.productTitle}>{displayName}</Text>
+          {secondaryName && (
+            <Text style={styles.productSecondaryTitle}>{secondaryName}</Text>
           )}
 
           {/* Ratings & Stock Availability */}
           <View style={styles.ratingStockRow}>
             <View style={styles.ratingChip}>
               <Ionicons name="star" size={14} color={COLORS.star} />
-              <Text style={styles.ratingNumber}>{selectedProduct.rating.toFixed(1)}</Text>
-              <Text style={styles.reviewsText}>({selectedProduct.reviewCount} Reviews)</Text>
+              <Text style={styles.ratingNumber}>{product.rating.toFixed(1)}</Text>
+              <Text style={styles.reviewsText}>
+                ({product.reviewCount} {t('reviews')})
+              </Text>
             </View>
 
             <View
               style={[
                 styles.stockPill,
                 {
-                  backgroundColor: selectedProduct.inStock
+                  backgroundColor: product.inStock
                     ? COLORS.successLight
                     : COLORS.dangerLight,
                 },
               ]}
             >
               <Ionicons
-                name={selectedProduct.inStock ? 'checkmark-circle' : 'close-circle'}
+                name={product.inStock ? 'checkmark-circle' : 'close-circle'}
                 size={14}
-                color={selectedProduct.inStock ? COLORS.success : COLORS.danger}
+                color={product.inStock ? COLORS.success : COLORS.danger}
               />
               <Text
                 style={[
                   styles.stockPillText,
-                  { color: selectedProduct.inStock ? COLORS.success : COLORS.danger },
+                  { color: product.inStock ? COLORS.success : COLORS.danger },
                 ]}
               >
-                {selectedProduct.inStock ? 'Available' : 'Out of Stock'}
+                {product.inStock ? t('inStock') : t('outOfStock')}
               </Text>
             </View>
           </View>
@@ -192,10 +233,12 @@ export const ProductDetailsScreen: React.FC = () => {
             {isOnRequest ? (
               <View>
                 <View style={styles.priceRow}>
-                  <Text style={styles.quotePriceTitle}>Price on Request</Text>
+                  <Text style={styles.quotePriceTitle}>{t('priceOnRequest')}</Text>
                 </View>
                 <Text style={styles.quoteExplanation}>
-                  Commercial milk cooling & pipeline parlour systems require custom sizing based on your farm's herd count, shed dimensions, and electrical phase. Submit a quotation enquiry for a custom engineered proposal.
+                  {language === 'mr'
+                    ? 'मोठ्या क्षमतेच्या बीएमसी कुलिंग टँक व पाईपलाईन मिल्किंग सिस्टीमसाठी आपल्या गोठ्यातील जनावरांची संख्या, शेडची रचना व वीज पुरवठ्यानुसार अचूक कोटेशन तयार केले जाते.'
+                    : 'Commercial milk cooling & pipeline parlour systems require custom sizing based on your farm herd count, shed layout, and electrical phase. Submit a quotation enquiry for a custom engineered proposal.'}
                 </Text>
               </View>
             ) : (
@@ -208,24 +251,50 @@ export const ProductDetailsScreen: React.FC = () => {
                 </View>
                 {savings > 0 && (
                   <Text style={styles.savingsTag}>
-                    You Save ₹{savings.toLocaleString('en-IN')} ({selectedProduct.discountPercent}% off MRP)
+                    {t('save')} ₹{savings.toLocaleString('en-IN')} ({product.discountPercent}% off MRP)
                   </Text>
                 )}
-                <Text style={styles.taxNote}>*Inclusive of GST. Delivery available in Baramati & across Maharashtra.</Text>
+                <Text style={styles.taxNote}>
+                  {language === 'mr'
+                    ? '*जीएसटी करासह. बारामती शोरूममधून थेट डिलिव्हरी उपलब्ध.'
+                    : '*Inclusive of GST. Delivery available in Baramati & across Maharashtra.'}
+                </Text>
               </View>
             )}
           </View>
 
+          {/* WhatsApp Direct Enquiry Bar */}
+          <View style={styles.contactBar}>
+            <TouchableOpacity
+              style={styles.whatsappDetailBtn}
+              onPress={() => openWhatsAppEnquiry(product.name, product.modelNumber)}
+              activeOpacity={0.8}
+            >
+              <Ionicons name="logo-whatsapp" size={18} color="#FFFFFF" />
+              <Text style={styles.whatsappDetailBtnText}>{t('whatsappEnquiry')}</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.callDetailBtn}
+              onPress={callBaramatiShowroom}
+              activeOpacity={0.8}
+            >
+              <Ionicons name="call" size={17} color={COLORS.primary} />
+              <Text style={styles.callDetailBtnText}>{t('callShowroom')}</Text>
+            </TouchableOpacity>
+          </View>
+
           {/* Description */}
           <View style={styles.cardBlock}>
-            <Text style={styles.blockTitle}>Equipment Description</Text>
-            <Text style={styles.descriptionText}>{selectedProduct.description}</Text>
+            <Text style={styles.blockTitle}>
+              {language === 'mr' ? 'उपकरण माहिती' : 'Equipment Description'}
+            </Text>
+            <Text style={styles.descriptionText}>{product.description}</Text>
           </View>
 
           {/* Key Features */}
           <View style={styles.cardBlock}>
-            <Text style={styles.blockTitle}>Key Features & Farm Benefits</Text>
-            {selectedProduct.features.map((feature, i) => (
+            <Text style={styles.blockTitle}>{t('keyFeatures')}</Text>
+            {product.features.map((feature, i) => (
               <View key={i} style={styles.featureItem}>
                 <Ionicons name="checkmark-done" size={18} color={COLORS.primary} />
                 <Text style={styles.featureText}>{feature}</Text>
@@ -235,9 +304,9 @@ export const ProductDetailsScreen: React.FC = () => {
 
           {/* Technical Specifications */}
           <View style={styles.cardBlock}>
-            <Text style={styles.blockTitle}>Technical Specifications</Text>
+            <Text style={styles.blockTitle}>{t('specifications')}</Text>
             <View style={styles.specTable}>
-              {selectedProduct.specifications.map((spec, i) => (
+              {product.specifications.map((spec, i) => (
                 <View
                   key={i}
                   style={[
@@ -256,10 +325,8 @@ export const ProductDetailsScreen: React.FC = () => {
           <View style={styles.warrantyBox}>
             <Ionicons name="shield-checkmark" size={28} color={COLORS.accent} />
             <View style={styles.warrantyContent}>
-              <Text style={styles.warrantyTitle}>{selectedProduct.warranty}</Text>
-              <Text style={styles.warrantySub}>
-                Authorized Jagdamb Enterprises genuine parts guarantee with on-site technician service in Baramati and surrounding regions.
-              </Text>
+              <Text style={styles.warrantyTitle}>{product.warranty}</Text>
+              <Text style={styles.warrantySub}>{t('genuineSubtitle')}</Text>
             </View>
           </View>
         </View>
@@ -270,22 +337,24 @@ export const ProductDetailsScreen: React.FC = () => {
         {isOnRequest ? (
           <TouchableOpacity
             style={styles.fullQuoteBtn}
-            onPress={() => requestProductQuote(selectedProduct)}
+            onPress={() => requestProductQuote(product)}
             activeOpacity={0.8}
           >
             <Ionicons name="document-text" size={20} color={COLORS.textInverse} />
-            <Text style={styles.fullQuoteBtnText}>Request Official Quotation</Text>
+            <Text style={styles.fullQuoteBtnText}>{t('requestQuote')}</Text>
           </TouchableOpacity>
         ) : (
           <>
             <View style={styles.bottomBarLeft}>
-              <Text style={styles.qtyLabel}>Quantity:</Text>
+              <Text style={styles.qtyLabel}>
+                {language === 'mr' ? 'प्रमाण:' : 'Qty:'}
+              </Text>
               <QuantityControl
                 quantity={localQuantity}
                 onIncrement={() => setLocalQuantity((q) => q + 1)}
                 onDecrement={() => setLocalQuantity((q) => Math.max(1, q - 1))}
                 min={1}
-                max={selectedProduct.stockCount || 10}
+                max={product.stockCount || 10}
                 size="medium"
               />
             </View>
@@ -294,25 +363,20 @@ export const ProductDetailsScreen: React.FC = () => {
               <TouchableOpacity
                 style={[
                   styles.addCartBtn,
-                  !selectedProduct.inStock && styles.addCartBtnDisabled,
+                  !product.inStock && styles.addCartBtnDisabled,
                 ]}
                 onPress={handleAddToCart}
-                disabled={!selectedProduct.inStock}
+                disabled={!product.inStock}
                 activeOpacity={0.8}
               >
                 <Ionicons name="cart" size={18} color={COLORS.textInverse} />
                 <Text style={styles.addCartBtnText}>
-                  {cartItem ? `In Cart (${cartItem.quantity})` : 'Add to Cart'}
+                  {cartItem
+                    ? language === 'mr'
+                      ? `कार्टमध्ये (${cartItem.quantity})`
+                      : `In Cart (${cartItem.quantity})`
+                    : t('addToCart')}
                 </Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={styles.inquireBtn}
-                onPress={handleInquire}
-                activeOpacity={0.8}
-                accessibilityLabel="Call store"
-              >
-                <Ionicons name="call-outline" size={18} color={COLORS.primaryDark} />
               </TouchableOpacity>
             </View>
           </>
@@ -326,6 +390,27 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: COLORS.background,
+  },
+  emptyContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: SPACING.xl,
+  },
+  emptyText: {
+    fontSize: 16,
+    color: COLORS.textMuted,
+    marginBottom: SPACING.md,
+  },
+  backHomeBtn: {
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    backgroundColor: COLORS.primary,
+    borderRadius: RADIUS.md,
+  },
+  backHomeBtnText: {
+    color: COLORS.textInverse,
+    fontWeight: '700',
   },
   header: {
     flexDirection: 'row',
@@ -350,63 +435,69 @@ const styles = StyleSheet.create({
   headerActions: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: SPACING.sm,
+    gap: 12,
   },
   headerIconBtn: {
     padding: SPACING.xs,
   },
   scrollContent: {
-    paddingBottom: 120,
+    paddingBottom: 90,
   },
   imageSection: {
     position: 'relative',
+    width: '100%',
+    height: 300,
     backgroundColor: COLORS.surfaceSecondary,
   },
   mainImage: {
     width: '100%',
-    height: 300,
+    height: '100%',
   },
   quoteBadge: {
     position: 'absolute',
     top: SPACING.md,
     left: SPACING.md,
-    backgroundColor: COLORS.primaryDark,
-    paddingHorizontal: SPACING.md,
-    paddingVertical: 5,
-    borderRadius: RADIUS.xs,
+    backgroundColor: COLORS.quoteBadge,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: RADIUS.sm,
   },
   quoteBadgeText: {
-    color: COLORS.textInverse,
+    color: COLORS.surface,
     fontSize: 11,
     fontWeight: '800',
+    letterSpacing: 0.5,
   },
   discountBadge: {
     position: 'absolute',
     top: SPACING.md,
     left: SPACING.md,
     backgroundColor: COLORS.discountBadge,
-    paddingHorizontal: SPACING.md,
-    paddingVertical: 5,
-    borderRadius: RADIUS.xs,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: RADIUS.sm,
   },
   discountBadgeText: {
-    color: COLORS.textInverse,
-    fontSize: 12,
+    color: COLORS.surface,
+    fontSize: 11,
     fontWeight: '800',
   },
   thumbnailsRow: {
+    position: 'absolute',
+    bottom: SPACING.md,
+    left: SPACING.md,
+    right: SPACING.md,
     flexDirection: 'row',
-    padding: SPACING.md,
-    gap: SPACING.sm,
-    backgroundColor: COLORS.surface,
+    gap: 8,
   },
   thumbnail: {
-    width: 60,
-    height: 60,
+    width: 50,
+    height: 50,
     borderRadius: RADIUS.sm,
     borderWidth: 2,
-    borderColor: 'transparent',
+    borderColor: COLORS.surface,
     overflow: 'hidden',
+    backgroundColor: COLORS.surface,
   },
   thumbnailActive: {
     borderColor: COLORS.primary,
@@ -420,51 +511,54 @@ const styles = StyleSheet.create({
   },
   metaRow: {
     flexDirection: 'row',
-    alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: SPACING.xs,
+    alignItems: 'center',
+    marginBottom: 6,
   },
   brandTag: {
     fontSize: 12,
     fontWeight: '800',
     color: COLORS.primary,
     textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
   modelTag: {
     fontSize: 12,
+    color: COLORS.textMuted,
     fontWeight: '600',
-    color: COLORS.textSecondary,
   },
   productTitle: {
-    ...TYPOGRAPHY.h1,
+    fontSize: 20,
+    fontWeight: '800',
     color: COLORS.textPrimary,
+    lineHeight: 26,
     marginBottom: 4,
   },
-  productMarathiTitle: {
-    fontSize: 15,
+  productSecondaryTitle: {
+    fontSize: 14,
+    color: COLORS.textMuted,
+    marginBottom: 10,
     fontWeight: '500',
-    color: COLORS.textSecondary,
-    marginBottom: SPACING.md,
   },
   ratingStockRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: SPACING.lg,
+    marginBottom: 16,
   },
   ratingChip: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: COLORS.warningLight,
-    paddingHorizontal: SPACING.sm,
+    backgroundColor: '#FEF3C7',
+    paddingHorizontal: 8,
     paddingVertical: 4,
-    borderRadius: RADIUS.full,
+    borderRadius: RADIUS.xs,
     gap: 4,
   },
   ratingNumber: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '700',
-    color: COLORS.textPrimary,
+    color: '#92400E',
   },
   reviewsText: {
     fontSize: 12,
@@ -473,48 +567,48 @@ const styles = StyleSheet.create({
   stockPill: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: SPACING.sm,
+    paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: RADIUS.full,
     gap: 4,
   },
   stockPillText: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '700',
   },
   priceContainer: {
     backgroundColor: COLORS.surface,
-    padding: SPACING.lg,
-    borderRadius: RADIUS.lg,
+    padding: SPACING.md,
+    borderRadius: RADIUS.md,
     borderWidth: 1,
     borderColor: COLORS.borderLight,
-    marginBottom: SPACING.lg,
-  },
-  quotePriceTitle: {
-    fontSize: 22,
-    fontWeight: '800',
-    color: COLORS.primary,
-  },
-  quoteExplanation: {
-    fontSize: 12,
-    color: COLORS.textSecondary,
-    lineHeight: 18,
-    marginTop: 6,
+    marginBottom: SPACING.md,
   },
   priceRow: {
     flexDirection: 'row',
     alignItems: 'baseline',
-    gap: SPACING.md,
+    gap: 10,
   },
   currentPrice: {
-    fontSize: 26,
+    fontSize: 24,
     fontWeight: '800',
     color: COLORS.textPrimary,
   },
   mrpPrice: {
-    fontSize: 16,
+    fontSize: 15,
     color: COLORS.textMuted,
     textDecorationLine: 'line-through',
+  },
+  quotePriceTitle: {
+    fontSize: 20,
+    fontWeight: '800',
+    color: COLORS.primary,
+  },
+  quoteExplanation: {
+    fontSize: 13,
+    color: COLORS.textSecondary,
+    lineHeight: 19,
+    marginTop: 6,
   },
   savingsTag: {
     fontSize: 13,
@@ -524,50 +618,87 @@ const styles = StyleSheet.create({
   },
   taxNote: {
     fontSize: 11,
-    color: COLORS.textSecondary,
-    marginTop: SPACING.xs,
+    color: COLORS.textMuted,
+    marginTop: 4,
+  },
+  contactBar: {
+    flexDirection: 'row',
+    gap: 10,
+    marginBottom: SPACING.md,
+  },
+  whatsappDetailBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#25D366',
+    paddingVertical: 10,
+    borderRadius: RADIUS.md,
+    gap: 6,
+  },
+  whatsappDetailBtnText: {
+    color: '#FFFFFF',
+    fontWeight: '700',
+    fontSize: 13,
+  },
+  callDetailBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: COLORS.surface,
+    paddingVertical: 10,
+    borderRadius: RADIUS.md,
+    gap: 6,
+    borderWidth: 1,
+    borderColor: COLORS.borderLight,
+  },
+  callDetailBtnText: {
+    color: COLORS.primary,
+    fontWeight: '700',
+    fontSize: 13,
   },
   cardBlock: {
     backgroundColor: COLORS.surface,
-    padding: SPACING.lg,
-    borderRadius: RADIUS.lg,
+    padding: SPACING.md,
+    borderRadius: RADIUS.md,
     borderWidth: 1,
     borderColor: COLORS.borderLight,
-    marginBottom: SPACING.lg,
-  },
-  blockTitle: {
-    ...TYPOGRAPHY.h3,
-    color: COLORS.textPrimary,
     marginBottom: SPACING.md,
   },
+  blockTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: COLORS.textPrimary,
+    marginBottom: SPACING.sm,
+  },
   descriptionText: {
-    ...TYPOGRAPHY.body,
+    fontSize: 13,
     color: COLORS.textSecondary,
-    lineHeight: 22,
+    lineHeight: 20,
   },
   featureItem: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    gap: SPACING.sm,
-    marginBottom: SPACING.sm,
+    gap: 8,
+    marginBottom: 6,
   },
   featureText: {
-    ...TYPOGRAPHY.body,
-    color: COLORS.textPrimary,
+    fontSize: 13,
+    color: COLORS.textSecondary,
     flex: 1,
+    lineHeight: 18,
   },
   specTable: {
-    borderRadius: RADIUS.md,
-    overflow: 'hidden',
     borderWidth: 1,
     borderColor: COLORS.borderLight,
+    borderRadius: RADIUS.sm,
+    overflow: 'hidden',
   },
   specRow: {
     flexDirection: 'row',
-    paddingVertical: SPACING.sm,
-    paddingHorizontal: SPACING.md,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.borderLight,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
   },
   specRowEven: {
     backgroundColor: COLORS.surfaceSecondary,
@@ -582,7 +713,7 @@ const styles = StyleSheet.create({
     color: COLORS.textSecondary,
   },
   specValue: {
-    flex: 1,
+    flex: 1.2,
     fontSize: 12,
     fontWeight: '700',
     color: COLORS.textPrimary,
@@ -591,24 +722,26 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: COLORS.accentLight,
-    padding: SPACING.lg,
-    borderRadius: RADIUS.lg,
-    gap: SPACING.md,
-    marginBottom: SPACING.lg,
+    padding: SPACING.md,
+    borderRadius: RADIUS.md,
+    borderWidth: 1,
+    borderColor: '#A7F3D0',
+    gap: 12,
+    marginBottom: SPACING.md,
   },
   warrantyContent: {
     flex: 1,
   },
   warrantyTitle: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: COLORS.accent,
-    marginBottom: 2,
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#065F46',
   },
   warrantySub: {
-    fontSize: 12,
-    color: COLORS.textSecondary,
-    lineHeight: 16,
+    fontSize: 11,
+    color: '#047857',
+    marginTop: 2,
+    lineHeight: 15,
   },
   bottomBar: {
     position: 'absolute',
@@ -622,65 +755,56 @@ const styles = StyleSheet.create({
     paddingVertical: SPACING.md,
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
     shadowColor: COLORS.shadow,
-    shadowOffset: { width: 0, height: -4 },
+    shadowOffset: { width: 0, height: -3 },
     shadowOpacity: 0.1,
-    shadowRadius: 8,
+    shadowRadius: 6,
     elevation: 8,
+  },
+  bottomBarLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginRight: SPACING.md,
+  },
+  qtyLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: COLORS.textSecondary,
+  },
+  bottomBarRight: {
+    flex: 1,
+  },
+  addCartBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: COLORS.primary,
+    paddingVertical: 12,
+    borderRadius: RADIUS.md,
+    gap: 8,
+  },
+  addCartBtnDisabled: {
+    backgroundColor: COLORS.surfaceSecondary,
+  },
+  addCartBtnText: {
+    color: COLORS.surface,
+    fontSize: 14,
+    fontWeight: '700',
   },
   fullQuoteBtn: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: COLORS.primary,
-    paddingVertical: 14,
+    backgroundColor: COLORS.primaryDark,
+    paddingVertical: 12,
     borderRadius: RADIUS.md,
     gap: 8,
   },
   fullQuoteBtnText: {
-    color: COLORS.textInverse,
-    fontSize: 15,
-    fontWeight: '700',
-  },
-  bottomBarLeft: {
-    flexDirection: 'column',
-    gap: 4,
-  },
-  qtyLabel: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: COLORS.textSecondary,
-  },
-  bottomBarRight: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: SPACING.sm,
-  },
-  addCartBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: COLORS.primary,
-    paddingHorizontal: SPACING.xl,
-    paddingVertical: SPACING.md,
-    borderRadius: RADIUS.md,
-    gap: SPACING.xs,
-  },
-  addCartBtnDisabled: {
-    backgroundColor: COLORS.surfaceSecondary,
-  },
-  addCartBtnText: {
-    color: COLORS.textInverse,
+    color: COLORS.surface,
     fontSize: 14,
     fontWeight: '700',
-  },
-  inquireBtn: {
-    width: 44,
-    height: 44,
-    borderRadius: RADIUS.md,
-    backgroundColor: COLORS.primaryLight,
-    alignItems: 'center',
-    justifyContent: 'center',
   },
 });

@@ -3,32 +3,33 @@ import { View, TextInput, StyleSheet, TouchableOpacity, Text } from 'react-nativ
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, SPACING, RADIUS, TYPOGRAPHY } from '../constants/theme';
 import { useApp } from '../context/AppContext';
+import { useLanguage } from '../context/LanguageContext';
 
 interface SearchBarProps {
   placeholder?: string;
   autoFocus?: boolean;
 }
 
-export const SearchBar: React.FC<SearchBarProps> = ({
-  placeholder = 'Search milking machines, analysers, spares...',
-  autoFocus = false,
-}) => {
-  const { searchQuery, setSearchQuery, filteredProducts, selectedCategory } = useApp();
+export const SearchBar: React.FC<SearchBarProps> = ({ placeholder, autoFocus = false }) => {
+  const { searchQuery, setSearchQuery, filteredProducts } = useApp();
+  const { t } = useLanguage();
+
+  const effectivePlaceholder = placeholder || t('searchPlaceholder');
 
   return (
     <View style={styles.container}>
       <View style={styles.inputWrapper}>
-        <Ionicons name="search" size={20} color={COLORS.textSecondary} style={styles.searchIcon} />
+        <Ionicons name="search" size={20} color={COLORS.primary} style={styles.searchIcon} />
         <TextInput
           style={styles.input}
-          placeholder={placeholder}
+          placeholder={effectivePlaceholder}
           placeholderTextColor={COLORS.textMuted}
           value={searchQuery}
           onChangeText={setSearchQuery}
           autoFocus={autoFocus}
           returnKeyType="search"
           clearButtonMode="never"
-          accessibilityLabel="Search dairy products"
+          accessibilityLabel="Search dairy equipment"
         />
         {searchQuery.length > 0 && (
           <TouchableOpacity
@@ -45,8 +46,7 @@ export const SearchBar: React.FC<SearchBarProps> = ({
       {searchQuery.length > 0 && (
         <View style={styles.statusRow}>
           <Text style={styles.statusText}>
-            Found <Text style={styles.statusBold}>{filteredProducts.length}</Text> product
-            {filteredProducts.length === 1 ? '' : 's'} for "{searchQuery}"
+            {t('resultsCount', { count: filteredProducts.length })}
           </Text>
         </View>
       )}
@@ -66,7 +66,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.surfaceSecondary,
     borderRadius: RADIUS.md,
     borderWidth: 1,
-    borderColor: COLORS.border,
+    borderColor: COLORS.borderLight,
     paddingHorizontal: SPACING.md,
     height: 46,
   },
@@ -88,10 +88,7 @@ const styles = StyleSheet.create({
   },
   statusText: {
     ...TYPOGRAPHY.caption,
-    color: COLORS.textSecondary,
-  },
-  statusBold: {
-    fontWeight: '700',
     color: COLORS.primaryDark,
+    fontWeight: '600',
   },
 });

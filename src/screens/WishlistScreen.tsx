@@ -8,8 +8,10 @@ import {
   TouchableOpacity,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { router } from 'expo-router';
 import { COLORS, SPACING, RADIUS, TYPOGRAPHY } from '../constants/theme';
 import { useApp } from '../context/AppContext';
+import { useLanguage } from '../context/LanguageContext';
 import { EmptyState } from '../components/EmptyState';
 
 export const WishlistScreen: React.FC = () => {
@@ -19,20 +21,25 @@ export const WishlistScreen: React.FC = () => {
     moveToCartFromWishlist,
     setSelectedProduct,
     setActiveTab,
+    requestProductQuote,
   } = useApp();
+  const { language, t } = useLanguage();
 
   if (wishlist.length === 0) {
     return (
       <View style={styles.container}>
         <View style={styles.header}>
-          <Text style={styles.headerTitle}>My Wishlist</Text>
+          <Text style={styles.headerTitle}>{t('myWishlist')}</Text>
         </View>
         <EmptyState
           icon="heart-outline"
-          title="Your Wishlist is Empty"
-          subtitle="Keep track of your favorite milking machines, testing instruments and spares here."
-          actionLabel="Browse Dairy Catalog"
-          onAction={() => setActiveTab('home')}
+          title={t('emptyWishlistTitle')}
+          subtitle={t('emptyWishlistMsg')}
+          actionLabel={t('tabHome')}
+          onAction={() => {
+            setActiveTab('home');
+            try { router.push('/(tabs)'); } catch (e) {}
+          }}
         />
       </View>
     );
@@ -42,98 +49,112 @@ export const WishlistScreen: React.FC = () => {
     <View style={styles.container}>
       <View style={styles.header}>
         <View>
-          <Text style={styles.headerTitle}>My Wishlist</Text>
+          <Text style={styles.headerTitle}>{t('myWishlist')}</Text>
           <Text style={styles.headerSubtitle}>
-            {wishlist.length} item{wishlist.length === 1 ? '' : 's'} saved
+            {wishlist.length} {language === 'mr' ? 'उपकरणे जतन' : 'items saved'}
           </Text>
         </View>
       </View>
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
         <View style={styles.list}>
-          {wishlist.map(({ product }) => (
-            <View key={product.id} style={styles.card}>
-              <TouchableOpacity
-                onPress={() => setSelectedProduct(product)}
-                activeOpacity={0.8}
-              >
-                <Image
-                  source={{ uri: product.image }}
-                  style={styles.image}
-                  resizeMode="cover"
-                />
-              </TouchableOpacity>
+          {wishlist.map(({ product }) => {
+            const displayName =
+              language === 'mr' && product.marathiName ? product.marathiName : product.name;
+            const isOnRequest = product.priceType === 'on-request';
 
-              <View style={styles.content}>
-                <View style={styles.topRow}>
-                  <Text style={styles.brand}>{product.brand}</Text>
-                  <TouchableOpacity
-                    onPress={() => removeFromWishlist(product.id)}
-                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                    accessibilityLabel="Remove from wishlist"
-                  >
-                    <Ionicons name="trash-outline" size={18} color={COLORS.danger} />
-                  </TouchableOpacity>
-                </View>
-
+            return (
+              <View key={product.id} style={styles.card}>
                 <TouchableOpacity
-                  onPress={() => setSelectedProduct(product)}
+                  onPress={() => {
+                    setSelectedProduct(product);
+                    try {
+                      router.push({
+                        pathname: '/product/[id]',
+                        params: { id: product.id },
+                      });
+                    } catch (e) {}
+                  }}
                   activeOpacity={0.8}
                 >
-                  <Text style={styles.title} numberOfLines={2}>
-                    {product.name}
-                  </Text>
+                  <Image
+                    source={{ uri: product.image }}
+                    style={styles.image}
+                    resizeMode="cover"
+                  />
                 </TouchableOpacity>
 
-                <View style={styles.priceRow}>
-                  {product.priceType === 'on-request' ? (
-                    <Text style={styles.price}>Price on Request</Text>
-                  ) : (
-                    <>
-                      <Text style={styles.price}>
-                        ₹{(product.price || 0).toLocaleString('en-IN')}
-                      </Text>
-                      {product.originalPrice && product.price && product.originalPrice > product.price && (
-                        <Text style={styles.originalPrice}>
-                          ₹{product.originalPrice.toLocaleString('en-IN')}
-                        </Text>
-                      )}
-                    </>
-                  )}
-                </View>
+                <View style={styles.content}>
+                  <View style={styles.topRow}>
+                    <Text style={styles.brand}>{product.brand}</Text>
+                    <TouchableOpacity
+                      onPress={() => removeFromWishlist(product.id)}
+                      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                      accessibilityLabel="Remove from wishlist"
+                    >
+                      <Ionicons name="trash-outline" size={18} color={COLORS.danger} />
+                    </TouchableOpacity>
+                  </View>
 
-                <View style={styles.actionRow}>
                   <TouchableOpacity
-                    style={[
-                      styles.moveToCartBtn,
-                      !product.inStock && styles.moveToCartBtnDisabled,
-                    ]}
-                    onPress={() => moveToCartFromWishlist(product)}
-                    disabled={!product.inStock}
+                    onPress={() => {
+                      setSelectedProduct(product);
+                      try {
+                        router.push({
+                          pathname: '/product/[id]',
+                          params: { id: product.id },
+                        });
+                      } catch (e) {}
+                    }}
                     activeOpacity={0.8}
                   >
-                    <Ionicons
-                      name={product.priceType === 'on-request' ? 'document-text-outline' : 'cart-outline'}
-                      size={16}
-                      color={product.inStock ? COLORS.textInverse : COLORS.textMuted}
-                    />
-                    <Text
-                      style={[
-                        styles.moveToCartText,
-                        !product.inStock && styles.moveToCartTextDisabled,
-                      ]}
-                    >
-                      {product.priceType === 'on-request'
-                        ? 'Request Quote'
-                        : product.inStock
-                        ? 'Move to Cart'
-                        : 'Out of Stock'}
+                    <Text style={styles.title} numberOfLines={2}>
+                      {displayName}
                     </Text>
                   </TouchableOpacity>
+
+                  <View style={styles.priceRow}>
+                    {isOnRequest ? (
+                      <Text style={styles.price}>{t('priceOnRequest')}</Text>
+                    ) : (
+                      <>
+                        <Text style={styles.price}>
+                          ₹{(product.price || 0).toLocaleString('en-IN')}
+                        </Text>
+                        {product.originalPrice && product.price && product.originalPrice > product.price && (
+                          <Text style={styles.originalPrice}>
+                            ₹{product.originalPrice.toLocaleString('en-IN')}
+                          </Text>
+                        )}
+                      </>
+                    )}
+                  </View>
+
+                  <View style={styles.actionRow}>
+                    {isOnRequest ? (
+                      <TouchableOpacity
+                        style={styles.quoteBtn}
+                        onPress={() => requestProductQuote(product)}
+                        activeOpacity={0.8}
+                      >
+                        <Ionicons name="document-text-outline" size={14} color={COLORS.primaryDark} />
+                        <Text style={styles.quoteBtnText}>{t('requestQuote')}</Text>
+                      </TouchableOpacity>
+                    ) : (
+                      <TouchableOpacity
+                        style={styles.moveBtn}
+                        onPress={() => moveToCartFromWishlist(product)}
+                        activeOpacity={0.8}
+                      >
+                        <Ionicons name="cart-outline" size={14} color={COLORS.surface} />
+                        <Text style={styles.moveBtnText}>{t('moveToCart')}</Text>
+                      </TouchableOpacity>
+                    )}
+                  </View>
                 </View>
               </View>
-            </View>
-          ))}
+            );
+          })}
         </View>
       </ScrollView>
     </View>
@@ -150,7 +171,7 @@ const styles = StyleSheet.create({
     paddingVertical: SPACING.md,
     backgroundColor: COLORS.surface,
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
+    borderBottomColor: COLORS.borderLight,
   },
   headerTitle: {
     ...TYPOGRAPHY.h2,
@@ -158,12 +179,11 @@ const styles = StyleSheet.create({
   },
   headerSubtitle: {
     ...TYPOGRAPHY.caption,
-    color: COLORS.textSecondary,
-    marginTop: 2,
+    color: COLORS.textMuted,
   },
   scrollContent: {
     padding: SPACING.lg,
-    paddingBottom: 40,
+    paddingBottom: SPACING.xxxl,
   },
   list: {
     gap: SPACING.md,
@@ -172,25 +192,24 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     backgroundColor: COLORS.surface,
     borderRadius: RADIUS.lg,
-    borderWidth: 1,
-    borderColor: COLORS.border,
     padding: SPACING.md,
-    gap: SPACING.md,
+    borderWidth: 1,
+    borderColor: COLORS.borderLight,
     shadowColor: COLORS.shadow,
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
+    shadowOpacity: 0.05,
     shadowRadius: 4,
     elevation: 2,
+    gap: SPACING.md,
   },
   image: {
-    width: 90,
-    height: 90,
+    width: 84,
+    height: 84,
     borderRadius: RADIUS.md,
     backgroundColor: COLORS.surfaceSecondary,
   },
   content: {
     flex: 1,
-    justifyContent: 'space-between',
   },
   topRow: {
     flexDirection: 'row',
@@ -198,9 +217,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   brand: {
-    fontSize: 10,
-    fontWeight: '800',
-    color: COLORS.primaryDark,
+    fontSize: 11,
+    fontWeight: '700',
+    color: COLORS.primary,
     textTransform: 'uppercase',
   },
   title: {
@@ -208,13 +227,13 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: COLORS.textPrimary,
     lineHeight: 18,
-    marginVertical: 2,
+    marginVertical: 3,
   },
   priceRow: {
     flexDirection: 'row',
     alignItems: 'baseline',
-    gap: SPACING.sm,
-    marginVertical: 2,
+    gap: 6,
+    marginBottom: 8,
   },
   price: {
     fontSize: 15,
@@ -222,32 +241,42 @@ const styles = StyleSheet.create({
     color: COLORS.textPrimary,
   },
   originalPrice: {
-    fontSize: 12,
+    fontSize: 11,
     color: COLORS.textMuted,
     textDecorationLine: 'line-through',
   },
   actionRow: {
-    marginTop: 4,
-  },
-  moveToCartBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
+  },
+  moveBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
     backgroundColor: COLORS.primary,
     paddingVertical: 7,
-    paddingHorizontal: SPACING.md,
-    borderRadius: RADIUS.sm,
-    gap: 6,
+    paddingHorizontal: 12,
+    borderRadius: RADIUS.md,
   },
-  moveToCartBtnDisabled: {
-    backgroundColor: COLORS.surfaceSecondary,
-  },
-  moveToCartText: {
-    color: COLORS.textInverse,
+  moveBtnText: {
+    color: COLORS.surface,
     fontSize: 12,
     fontWeight: '700',
   },
-  moveToCartTextDisabled: {
-    color: COLORS.textMuted,
+  quoteBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: COLORS.primaryLight,
+    paddingVertical: 7,
+    paddingHorizontal: 12,
+    borderRadius: RADIUS.md,
+    borderWidth: 1,
+    borderColor: '#BAE6FD',
+  },
+  quoteBtnText: {
+    color: COLORS.primaryDark,
+    fontSize: 12,
+    fontWeight: '700',
   },
 });

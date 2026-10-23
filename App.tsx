@@ -3,6 +3,7 @@ import { StyleSheet, View } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { AppProvider, useApp } from './src/context/AppContext';
+import { LanguageProvider } from './src/context/LanguageContext';
 import { Header } from './src/components/Header';
 import { BottomTabBar } from './src/components/BottomTabBar';
 import { Toast } from './src/components/Toast';
@@ -60,9 +61,11 @@ const MainNavigator: React.FC = () => {
 export default function App() {
   return (
     <SafeAreaProvider>
-      <AppProvider>
-        <MainNavigator />
-      </AppProvider>
+      <LanguageProvider>
+        <AppProvider>
+          <MainNavigator />
+        </AppProvider>
+      </LanguageProvider>
     </SafeAreaProvider>
   );
 }

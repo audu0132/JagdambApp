@@ -10,10 +10,13 @@ import {
   Modal,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { router } from 'expo-router';
 import { COLORS, SPACING, RADIUS, TYPOGRAPHY } from '../constants/theme';
 import { useApp } from '../context/AppContext';
+import { useLanguage } from '../context/LanguageContext';
 import { QuantityControl } from '../components/QuantityControl';
 import { EmptyState } from '../components/EmptyState';
+import { openWhatsAppEnquiry } from '../lib/supabaseService';
 
 export const CartScreen: React.FC = () => {
   const {
@@ -25,7 +28,9 @@ export const CartScreen: React.FC = () => {
     getCartCount,
     setSelectedProduct,
     setActiveTab,
+    user,
   } = useApp();
+  const { language, t } = useLanguage();
 
   const [checkoutModalVisible, setCheckoutModalVisible] = useState(false);
 
@@ -34,31 +39,59 @@ export const CartScreen: React.FC = () => {
 
   const handleClearCart = () => {
     Alert.alert(
-      'Clear Shopping Cart',
-      'Are you sure you want to remove all items from your cart?',
+      language === 'mr' ? 'कार्ट रिकामी करा' : 'Clear Shopping Cart',
+      language === 'mr'
+        ? 'तुम्हाला खात्री आहे का की सर्व साहित्य कार्टमधून काढायचे आहे?'
+        : 'Are you sure you want to remove all items from your cart?',
       [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'Clear All', style: 'destructive', onPress: clearCart },
+        { text: language === 'mr' ? 'रद्द करा' : 'Cancel', style: 'cancel' },
+        {
+          text: language === 'mr' ? 'काढून टाका' : 'Clear All',
+          style: 'destructive',
+          onPress: clearCart,
+        },
       ]
     );
   };
 
-  const handleProceedCheckout = () => {
-    setCheckoutModalVisible(true);
+  const handleWhatsAppOrder = () => {
+    let orderMsg = `*Jagdamb Enterprises — Machinery Order & Quote Request*\n`;
+    orderMsg += `Farmer Name: ${user.fullName || 'Farmer'}\n`;
+    orderMsg += `Mobile: ${user.phoneNumber}\n`;
+    orderMsg += `Address: ${user.location}\n\n`;
+    orderMsg += `*Itemized Order:*\n`;
+
+    cart.forEach((item, index) => {
+      orderMsg += `${index + 1}. ${item.product.name} (Qty: ${item.quantity}) - ₹${(
+        (item.product.price || 0) * item.quantity
+      ).toLocaleString('en-IN')}\n`;
+    });
+
+    orderMsg += `\n*Subtotal:* ₹${subtotal.toLocaleString('en-IN')}`;
+    orderMsg += `\n*GST (18%):* ₹${gst.toLocaleString('en-IN')}`;
+    orderMsg += `\n*Delivery:* ${delivery === 0 ? 'FREE' : `₹${delivery}`}`;
+    orderMsg += `\n*Estimated Total:* ₹${total.toLocaleString('en-IN')}`;
+    orderMsg += `\n\nPlease confirm availability and dispatch schedule from Baramati.`;
+
+    openWhatsAppEnquiry(undefined, undefined, orderMsg);
+    setCheckoutModalVisible(false);
   };
 
   if (cart.length === 0) {
     return (
       <View style={styles.container}>
         <View style={styles.header}>
-          <Text style={styles.headerTitle}>Shopping Cart</Text>
+          <Text style={styles.headerTitle}>{t('myCart')}</Text>
         </View>
         <EmptyState
           icon="cart-outline"
-          title="Your Cart is Empty"
-          subtitle="Explore our dairy equipment, milking machines, and genuine replacement spare parts."
-          actionLabel="Explore Dairy Catalog"
-          onAction={() => setActiveTab('home')}
+          title={t('emptyCartTitle')}
+          subtitle={t('emptyCartMsg')}
+          actionLabel={t('tabHome')}
+          onAction={() => {
+            setActiveTab('home');
+            try { router.push('/(tabs)'); } catch (e) {}
+          }}
         />
       </View>
     );
@@ -69,15 +102,15 @@ export const CartScreen: React.FC = () => {
       {/* Header */}
       <View style={styles.header}>
         <View>
-          <Text style={styles.headerTitle}>Shopping Cart</Text>
+          <Text style={styles.headerTitle}>{t('myCart')}</Text>
           <Text style={styles.headerSubtitle}>
-            {cartCount} item{cartCount === 1 ? '' : 's'} selected
+            {t('cartItems', { count: cartCount })}
           </Text>
         </View>
 
         <TouchableOpacity onPress={handleClearCart} style={styles.clearBtn}>
           <Ionicons name="trash-outline" size={16} color={COLORS.danger} />
-          <Text style={styles.clearBtnText}>Clear</Text>
+          <Text style={styles.clearBtnText}>{t('clearSearch')}</Text>
         </TouchableOpacity>
       </View>
 
@@ -87,11 +120,23 @@ export const CartScreen: React.FC = () => {
           {cart.map((item) => {
             const unitPrice = item.product.price || 0;
             const itemTotal = unitPrice * item.quantity;
+            const itemName =
+              language === 'mr' && item.product.marathiName
+                ? item.product.marathiName
+                : item.product.name;
 
             return (
               <View key={item.product.id} style={styles.cartCard}>
                 <TouchableOpacity
-                  onPress={() => setSelectedProduct(item.product)}
+                  onPress={() => {
+                    setSelectedProduct(item.product);
+                    try {
+                      router.push({
+                        pathname: '/product/[id]',
+                        params: { id: item.product.id },
+                      });
+                    } catch (e) {}
+                  }}
                   activeOpacity={0.8}
                 >
                   <Image
@@ -101,42 +146,34 @@ export const CartScreen: React.FC = () => {
                   />
                 </TouchableOpacity>
 
-                <View style={styles.productDetails}>
-                  <View style={styles.productTopRow}>
+                <View style={styles.itemInfo}>
+                  <View style={styles.itemHeaderRow}>
                     <Text style={styles.brandText}>{item.product.brand}</Text>
                     <TouchableOpacity
                       onPress={() => removeFromCart(item.product.id)}
                       hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                      accessibilityLabel={`Remove ${item.product.name} from cart`}
+                      accessibilityLabel="Remove item"
                     >
-                      <Ionicons name="close" size={20} color={COLORS.textMuted} />
+                      <Ionicons name="close" size={18} color={COLORS.textMuted} />
                     </TouchableOpacity>
                   </View>
 
-                  <TouchableOpacity
-                    onPress={() => setSelectedProduct(item.product)}
-                    activeOpacity={0.8}
-                  >
-                    <Text style={styles.productName} numberOfLines={2}>
-                      {item.product.name}
-                    </Text>
-                  </TouchableOpacity>
-
-                  <Text style={styles.unitPrice}>
-                    {item.product.price
-                      ? `₹${item.product.price.toLocaleString('en-IN')} each`
-                      : 'Quotation item'}
+                  <Text style={styles.itemTitle} numberOfLines={2}>
+                    {itemName}
                   </Text>
 
-                  <View style={styles.cardBottomRow}>
+                  <Text style={styles.unitPrice}>
+                    ₹{unitPrice.toLocaleString('en-IN')}{' '}
+                    <Text style={styles.perUnitText}>
+                      / {language === 'mr' ? 'नग' : 'unit'}
+                    </Text>
+                  </Text>
+
+                  <View style={styles.quantityRow}>
                     <QuantityControl
                       quantity={item.quantity}
-                      onIncrement={() =>
-                        updateCartQuantity(item.product.id, item.quantity + 1)
-                      }
-                      onDecrement={() =>
-                        updateCartQuantity(item.product.id, item.quantity - 1)
-                      }
+                      onIncrement={() => updateCartQuantity(item.product.id, item.quantity + 1)}
+                      onDecrement={() => updateCartQuantity(item.product.id, item.quantity - 1)}
                       size="small"
                     />
 
@@ -150,90 +187,101 @@ export const CartScreen: React.FC = () => {
           })}
         </View>
 
-        {/* Free Delivery Bar */}
+        {/* Free Delivery Notice */}
         <View style={styles.deliveryNotice}>
-          <Ionicons
-            name={delivery === 0 ? 'checkmark-circle' : 'cube-outline'}
-            size={18}
-            color={delivery === 0 ? COLORS.accent : COLORS.primary}
-          />
+          <Ionicons name="checkmark-circle" size={18} color={COLORS.accent} />
           <Text style={styles.deliveryNoticeText}>
-            {delivery === 0
-              ? 'Congratulations! You qualify for Free Warehouse Delivery!'
-              : 'Add ₹' + (5000 - subtotal).toLocaleString('en-IN') + ' more for Free Delivery'}
+            {subtotal >= 5000
+              ? language === 'mr'
+                ? 'अभिनंदन! ₹५,००० वरील ऑर्डरसाठी मोफत डिलिव्हरी लागू झाली.'
+                : 'Free delivery applied! Your order exceeds ₹5,000 threshold.'
+              : language === 'mr'
+              ? `आणखी ₹${(5000 - subtotal).toLocaleString('en-IN')} ची खरेदी करा व मोफत डिलिव्हरी मिळवा.`
+              : `Add ₹${(5000 - subtotal).toLocaleString('en-IN')} more to unlock FREE delivery.`}
           </Text>
         </View>
 
-        {/* Order Summary Card */}
+        {/* Order Cost Breakdown */}
         <View style={styles.summaryCard}>
-          <Text style={styles.summaryTitle}>Order Summary</Text>
+          <Text style={styles.summaryTitle}>{t('orderSummary')}</Text>
 
           <View style={styles.summaryRow}>
-            <Text style={styles.summaryLabel}>Subtotal ({cartCount} items)</Text>
+            <Text style={styles.summaryLabel}>{t('subtotal')}</Text>
             <Text style={styles.summaryValue}>₹{subtotal.toLocaleString('en-IN')}</Text>
           </View>
 
           <View style={styles.summaryRow}>
-            <Text style={styles.summaryLabel}>GST (18% Equipment Tax)</Text>
+            <Text style={styles.summaryLabel}>{t('gst')}</Text>
             <Text style={styles.summaryValue}>₹{gst.toLocaleString('en-IN')}</Text>
           </View>
 
           <View style={styles.summaryRow}>
-            <Text style={styles.summaryLabel}>Estimated Delivery</Text>
-            <Text style={[styles.summaryValue, delivery === 0 && styles.freeDeliveryText]}>
-              {delivery === 0 ? 'FREE' : `₹${delivery.toLocaleString('en-IN')}`}
+            <Text style={styles.summaryLabel}>{t('deliveryFee')}</Text>
+            <Text
+              style={[
+                styles.summaryValue,
+                delivery === 0 && styles.freeDeliveryText,
+              ]}
+            >
+              {delivery === 0 ? t('freeDelivery') : `₹${delivery}`}
             </Text>
           </View>
 
           {savings > 0 && (
             <View style={styles.summaryRow}>
-              <Text style={styles.savingsLabel}>Total Discount Savings</Text>
-              <Text style={styles.savingsValue}>- ₹{savings.toLocaleString('en-IN')}</Text>
+              <Text style={styles.savingsLabel}>{t('totalSavings')}</Text>
+              <Text style={styles.savingsValue}>
+                -₹{savings.toLocaleString('en-IN')}
+              </Text>
             </View>
           )}
 
           <View style={styles.divider} />
 
           <View style={styles.totalRow}>
-            <Text style={styles.totalLabel}>Estimated Total</Text>
+            <Text style={styles.totalLabel}>{t('totalAmount')}</Text>
             <Text style={styles.totalAmount}>₹{total.toLocaleString('en-IN')}</Text>
           </View>
 
           <Text style={styles.vatNote}>
-            Final invoice will include Jagdamb Enterprises GSTIN registration and tax credits.
+            {language === 'mr'
+              ? '*१८% जीएसटी कृषी यंत्रसामग्री अधिकृत बिल समाविष्ट.'
+              : '*Standard 18% GST invoice provided for agricultural bank subsidy claims.'}
           </Text>
         </View>
 
-        {/* Store Pickup / Contact Note */}
+        {/* Store Pickup Notice */}
         <View style={styles.storeLocationBox}>
-          <Ionicons name="storefront-outline" size={20} color={COLORS.primaryDark} />
+          <Ionicons name="storefront-outline" size={20} color={COLORS.primary} />
           <View style={styles.storeLocationText}>
-            <Text style={styles.storeTitle}>Direct Store Pickup Option</Text>
-            <Text style={styles.storeDesc}>
-              Shop 2, Jamdar Nagar, Near PDCC Bank, Kasba, Baramati, Maharashtra - 413102
+            <Text style={styles.storeLocationTitle}>
+              {language === 'mr' ? 'थेट शोरूम भेट व खरेदी' : 'Showroom Pickup Available'}
             </Text>
+            <Text style={styles.storeLocationSubtitle}>{t('pickupNotice')}</Text>
           </View>
         </View>
       </ScrollView>
 
-      {/* Sticky Bottom Checkout Action */}
-      <View style={styles.checkoutBar}>
-        <View style={styles.checkoutTotalCol}>
-          <Text style={styles.checkoutTotalLabel}>Total Amount</Text>
-          <Text style={styles.checkoutTotalValue}>₹{total.toLocaleString('en-IN')}</Text>
+      {/* Sticky Bottom Bar */}
+      <View style={styles.bottomBar}>
+        <View style={styles.bottomBarTotal}>
+          <Text style={styles.bottomBarTotalLabel}>
+            {language === 'mr' ? 'एकूण रक्कम:' : 'Total Amount:'}
+          </Text>
+          <Text style={styles.bottomBarTotalValue}>₹{total.toLocaleString('en-IN')}</Text>
         </View>
 
         <TouchableOpacity
           style={styles.checkoutBtn}
-          onPress={handleProceedCheckout}
+          onPress={() => setCheckoutModalVisible(true)}
           activeOpacity={0.8}
         >
-          <Text style={styles.checkoutBtnText}>Proceed to Order</Text>
-          <Ionicons name="arrow-forward" size={18} color={COLORS.textInverse} />
+          <Ionicons name="document-text-outline" size={18} color={COLORS.surface} />
+          <Text style={styles.checkoutBtnText}>{t('proceedToQuote')}</Text>
         </TouchableOpacity>
       </View>
 
-      {/* Phase 1 Checkout Modal */}
+      {/* Checkout Preview & WhatsApp Modal */}
       <Modal
         visible={checkoutModalVisible}
         transparent
@@ -241,59 +289,75 @@ export const CartScreen: React.FC = () => {
         onRequestClose={() => setCheckoutModalVisible(false)}
       >
         <View style={styles.modalOverlay}>
-          <View style={styles.modalCard}>
+          <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
-              <View style={styles.modalIconCircle}>
-                <Ionicons name="bag-check" size={28} color={COLORS.primary} />
+              <View>
+                <Text style={styles.modalTitle}>
+                  {language === 'mr' ? 'अधिकृत कोटेशन व ऑर्डर' : 'Formal Machinery Quotation'}
+                </Text>
+                <Text style={styles.modalSubtitle}>
+                  {language === 'mr'
+                    ? 'जगदंब एंटरप्रायझेस बारामती अधिकृत बिल'
+                    : 'Jagdamb Enterprises Baramati'}
+                </Text>
               </View>
               <TouchableOpacity
                 onPress={() => setCheckoutModalVisible(false)}
                 style={styles.modalCloseBtn}
               >
-                <Ionicons name="close" size={22} color={COLORS.textSecondary} />
+                <Ionicons name="close" size={22} color={COLORS.textPrimary} />
               </TouchableOpacity>
             </View>
 
-            <Text style={styles.modalTitle}>Order Confirmation (Phase 1)</Text>
-            <Text style={styles.modalSubtitle}>
-              You have {cartCount} item(s) ready for ordering from Jagdamb Enterprises Baramati.
-            </Text>
-
-            <View style={styles.modalOrderDetails}>
-              <View style={styles.modalRow}>
-                <Text style={styles.modalLabel}>Total Value:</Text>
-                <Text style={styles.modalValue}>₹{total.toLocaleString('en-IN')}</Text>
+            <ScrollView style={styles.modalBody}>
+              <View style={styles.modalSection}>
+                <Text style={styles.modalSectionTitle}>
+                  {language === 'mr' ? 'शेतकरी / ग्राहक तपशील' : 'Farmer Contact Details'}
+                </Text>
+                <Text style={styles.farmerDetailText}>Name: {user.fullName}</Text>
+                <Text style={styles.farmerDetailText}>Phone: {user.phoneNumber}</Text>
+                <Text style={styles.farmerDetailText}>Address: {user.location}</Text>
               </View>
-              <View style={styles.modalRow}>
-                <Text style={styles.modalLabel}>Payment Mode:</Text>
-                <Text style={styles.modalValue}>Direct UPI / Store Payment</Text>
-              </View>
-              <View style={styles.modalRow}>
-                <Text style={styles.modalLabel}>Pickup/Delivery:</Text>
-                <Text style={styles.modalValue}>Baramati Hub / Dispatch</Text>
-              </View>
-            </View>
 
-            <View style={styles.modalNoteBox}>
-              <Ionicons name="information-circle-outline" size={18} color={COLORS.primary} />
-              <Text style={styles.modalNoteText}>
-                As per Phase 1 development rules, payment gateway integration will follow in Phase 2. Your cart state is fully preserved locally.
-              </Text>
-            </View>
+              <View style={styles.modalSection}>
+                <Text style={styles.modalSectionTitle}>
+                  {language === 'mr' ? 'निवडलेली उपकरणे' : 'Equipment Ordered'}
+                </Text>
+                {cart.map((item, idx) => (
+                  <View key={item.product.id} style={styles.modalItemRow}>
+                    <Text style={styles.modalItemName} numberOfLines={1}>
+                      {idx + 1}. {item.product.name}
+                    </Text>
+                    <Text style={styles.modalItemQty}>x{item.quantity}</Text>
+                    <Text style={styles.modalItemPrice}>
+                      ₹{((item.product.price || 0) * item.quantity).toLocaleString('en-IN')}
+                    </Text>
+                  </View>
+                ))}
+              </View>
 
-            <TouchableOpacity
-              style={styles.modalDoneBtn}
-              onPress={() => {
-                setCheckoutModalVisible(false);
-                Alert.alert(
-                  'Order Inquiry Recorded',
-                  'Thank you! Your quotation request has been noted. Our Baramati support desk will assist you with equipment dispatch.',
-                  [{ text: 'OK' }]
-                );
-              }}
-            >
-              <Text style={styles.modalDoneText}>Submit Equipment Request</Text>
-            </TouchableOpacity>
+              <View style={styles.modalTotalCard}>
+                <View style={styles.modalTotalRow}>
+                  <Text style={styles.modalTotalLabel}>
+                    {language === 'mr' ? 'एकूण देय रक्कम:' : 'Total Payable:'}
+                  </Text>
+                  <Text style={styles.modalTotalValue}>₹{total.toLocaleString('en-IN')}</Text>
+                </View>
+              </View>
+
+              <TouchableOpacity
+                style={styles.sendWhatsAppBtn}
+                onPress={handleWhatsAppOrder}
+                activeOpacity={0.8}
+              >
+                <Ionicons name="logo-whatsapp" size={20} color="#FFFFFF" />
+                <Text style={styles.sendWhatsAppBtnText}>
+                  {language === 'mr'
+                    ? 'व्हॉट्सॲपवर कोटेशन पाठवा'
+                    : 'Send to Baramati Showroom on WhatsApp'}
+                </Text>
+              </TouchableOpacity>
+            </ScrollView>
           </View>
         </View>
       </Modal>
@@ -314,7 +378,7 @@ const styles = StyleSheet.create({
     paddingVertical: SPACING.md,
     backgroundColor: COLORS.surface,
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
+    borderBottomColor: COLORS.borderLight,
   },
   headerTitle: {
     ...TYPOGRAPHY.h2,
@@ -322,17 +386,16 @@ const styles = StyleSheet.create({
   },
   headerSubtitle: {
     ...TYPOGRAPHY.caption,
-    color: COLORS.textSecondary,
-    marginTop: 2,
+    color: COLORS.textMuted,
   },
   clearBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    paddingHorizontal: SPACING.sm,
     paddingVertical: 6,
+    paddingHorizontal: 10,
     borderRadius: RADIUS.sm,
-    backgroundColor: COLORS.dangerLight,
+    backgroundColor: '#FEE2E2',
   },
   clearBtnText: {
     fontSize: 12,
@@ -341,7 +404,7 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     padding: SPACING.lg,
-    paddingBottom: 110,
+    paddingBottom: 100,
   },
   itemList: {
     gap: SPACING.md,
@@ -351,50 +414,53 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     backgroundColor: COLORS.surface,
     borderRadius: RADIUS.lg,
-    borderWidth: 1,
-    borderColor: COLORS.border,
     padding: SPACING.md,
-    gap: SPACING.md,
+    borderWidth: 1,
+    borderColor: COLORS.borderLight,
     shadowColor: COLORS.shadow,
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
+    shadowOpacity: 0.05,
     shadowRadius: 4,
     elevation: 2,
+    gap: SPACING.md,
   },
   productImage: {
-    width: 84,
-    height: 84,
+    width: 80,
+    height: 80,
     borderRadius: RADIUS.md,
     backgroundColor: COLORS.surfaceSecondary,
   },
-  productDetails: {
+  itemInfo: {
     flex: 1,
-    justifyContent: 'space-between',
   },
-  productTopRow: {
+  itemHeaderRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
   },
   brandText: {
-    fontSize: 10,
-    fontWeight: '800',
-    color: COLORS.primaryDark,
+    fontSize: 11,
+    fontWeight: '700',
+    color: COLORS.primary,
     textTransform: 'uppercase',
   },
-  productName: {
+  itemTitle: {
     fontSize: 13,
     fontWeight: '700',
     color: COLORS.textPrimary,
-    marginVertical: 2,
     lineHeight: 18,
+    marginVertical: 2,
   },
   unitPrice: {
     fontSize: 12,
     color: COLORS.textSecondary,
-    marginBottom: SPACING.xs,
+    marginBottom: 6,
   },
-  cardBottomRow: {
+  perUnitText: {
+    fontSize: 11,
+    color: COLORS.textMuted,
+  },
+  quantityRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -412,18 +478,20 @@ const styles = StyleSheet.create({
     borderRadius: RADIUS.md,
     gap: SPACING.sm,
     marginBottom: SPACING.lg,
+    borderWidth: 1,
+    borderColor: '#A7F3D0',
   },
   deliveryNoticeText: {
     fontSize: 12,
     fontWeight: '600',
-    color: COLORS.accent,
+    color: '#065F46',
     flex: 1,
   },
   summaryCard: {
     backgroundColor: COLORS.surface,
     borderRadius: RADIUS.lg,
     borderWidth: 1,
-    borderColor: COLORS.border,
+    borderColor: COLORS.borderLight,
     padding: SPACING.lg,
     marginBottom: SPACING.lg,
   },
@@ -463,7 +531,7 @@ const styles = StyleSheet.create({
   },
   divider: {
     height: 1,
-    backgroundColor: COLORS.border,
+    backgroundColor: COLORS.borderLight,
     marginVertical: SPACING.md,
   },
   totalRow: {
@@ -473,7 +541,7 @@ const styles = StyleSheet.create({
     marginBottom: SPACING.xs,
   },
   totalLabel: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '700',
     color: COLORS.textPrimary,
   },
@@ -494,29 +562,31 @@ const styles = StyleSheet.create({
     padding: SPACING.md,
     borderRadius: RADIUS.md,
     gap: SPACING.sm,
+    borderWidth: 1,
+    borderColor: COLORS.borderLight,
   },
   storeLocationText: {
     flex: 1,
   },
-  storeTitle: {
-    fontSize: 12,
+  storeLocationTitle: {
+    fontSize: 13,
     fontWeight: '700',
-    color: COLORS.primaryDark,
+    color: COLORS.textPrimary,
     marginBottom: 2,
   },
-  storeDesc: {
-    fontSize: 11,
+  storeLocationSubtitle: {
+    fontSize: 12,
     color: COLORS.textSecondary,
     lineHeight: 16,
   },
-  checkoutBar: {
+  bottomBar: {
     position: 'absolute',
     bottom: 0,
     left: 0,
     right: 0,
     backgroundColor: COLORS.surface,
     borderTopWidth: 1,
-    borderTopColor: COLORS.border,
+    borderTopColor: COLORS.borderLight,
     paddingHorizontal: SPACING.lg,
     paddingVertical: SPACING.md,
     flexDirection: 'row',
@@ -528,114 +598,144 @@ const styles = StyleSheet.create({
     shadowRadius: 6,
     elevation: 8,
   },
-  checkoutTotalCol: {
+  bottomBarTotal: {
     flexDirection: 'column',
   },
-  checkoutTotalLabel: {
+  bottomBarTotalLabel: {
     fontSize: 11,
-    color: COLORS.textSecondary,
+    color: COLORS.textMuted,
+    fontWeight: '500',
   },
-  checkoutTotalValue: {
-    fontSize: 20,
+  bottomBarTotalValue: {
+    fontSize: 18,
     fontWeight: '800',
-    color: COLORS.textPrimary,
+    color: COLORS.primaryDark,
   },
   checkoutBtn: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: 8,
     backgroundColor: COLORS.primary,
-    paddingHorizontal: SPACING.xl,
-    paddingVertical: SPACING.md,
+    paddingVertical: 12,
+    paddingHorizontal: 20,
     borderRadius: RADIUS.md,
-    gap: SPACING.xs,
   },
   checkoutBtnText: {
-    color: COLORS.textInverse,
+    color: COLORS.surface,
     fontSize: 14,
     fontWeight: '700',
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: COLORS.overlay,
+    backgroundColor: 'rgba(15, 23, 42, 0.6)',
     justifyContent: 'flex-end',
   },
-  modalCard: {
+  modalContent: {
     backgroundColor: COLORS.surface,
     borderTopLeftRadius: RADIUS.xl,
     borderTopRightRadius: RADIUS.xl,
-    padding: SPACING.xl,
-    paddingBottom: SPACING.xxxl,
+    maxHeight: '80%',
+    padding: SPACING.lg,
   },
   modalHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: SPACING.md,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.borderLight,
+    paddingBottom: SPACING.sm,
   },
-  modalIconCircle: {
-    width: 48,
-    height: 48,
-    borderRadius: RADIUS.full,
-    backgroundColor: COLORS.primaryLight,
-    alignItems: 'center',
-    justifyContent: 'center',
+  modalTitle: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: COLORS.textPrimary,
+  },
+  modalSubtitle: {
+    fontSize: 12,
+    color: COLORS.primary,
+    fontWeight: '600',
   },
   modalCloseBtn: {
     padding: SPACING.xs,
   },
-  modalTitle: {
-    ...TYPOGRAPHY.h2,
-    color: COLORS.textPrimary,
-    marginBottom: 4,
+  modalBody: {
+    paddingBottom: SPACING.xl,
   },
-  modalSubtitle: {
-    ...TYPOGRAPHY.body,
-    color: COLORS.textSecondary,
-    marginBottom: SPACING.lg,
-  },
-  modalOrderDetails: {
+  modalSection: {
+    marginBottom: SPACING.md,
     backgroundColor: COLORS.surfaceSecondary,
-    borderRadius: RADIUS.md,
     padding: SPACING.md,
-    marginBottom: SPACING.lg,
-    gap: SPACING.sm,
+    borderRadius: RADIUS.md,
   },
-  modalRow: {
+  modalSectionTitle: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: COLORS.textPrimary,
+    marginBottom: 6,
+  },
+  farmerDetailText: {
+    fontSize: 12,
+    color: COLORS.textSecondary,
+    marginBottom: 3,
+  },
+  modalItemRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 4,
+  },
+  modalItemName: {
+    flex: 1,
+    fontSize: 12,
+    color: COLORS.textPrimary,
+    fontWeight: '600',
+  },
+  modalItemQty: {
+    fontSize: 12,
+    color: COLORS.textMuted,
+    marginHorizontal: 8,
+  },
+  modalItemPrice: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: COLORS.textPrimary,
+  },
+  modalTotalCard: {
+    backgroundColor: '#EFF6FF',
+    padding: SPACING.md,
+    borderRadius: RADIUS.md,
+    marginBottom: SPACING.lg,
+    borderWidth: 1,
+    borderColor: '#BFDBFE',
+  },
+  modalTotalRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
   },
-  modalLabel: {
-    fontSize: 13,
-    color: COLORS.textSecondary,
-  },
-  modalValue: {
-    fontSize: 13,
+  modalTotalLabel: {
+    fontSize: 14,
     fontWeight: '700',
-    color: COLORS.textPrimary,
+    color: COLORS.primaryDark,
   },
-  modalNoteBox: {
+  modalTotalValue: {
+    fontSize: 20,
+    fontWeight: '800',
+    color: COLORS.primaryDark,
+  },
+  sendWhatsAppBtn: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: SPACING.sm,
-    marginBottom: SPACING.xl,
-  },
-  modalNoteText: {
-    fontSize: 11,
-    color: COLORS.textSecondary,
-    flex: 1,
-    lineHeight: 16,
-  },
-  modalDoneBtn: {
-    backgroundColor: COLORS.primary,
-    borderRadius: RADIUS.md,
-    paddingVertical: SPACING.md,
     alignItems: 'center',
     justifyContent: 'center',
+    backgroundColor: '#25D366',
+    paddingVertical: 14,
+    borderRadius: RADIUS.md,
+    gap: 8,
   },
-  modalDoneText: {
-    color: COLORS.textInverse,
-    fontSize: 15,
+  sendWhatsAppBtnText: {
+    color: '#FFFFFF',
+    fontSize: 14,
     fontWeight: '700',
   },
 });

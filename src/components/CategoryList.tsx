@@ -4,16 +4,22 @@ import { Ionicons } from '@expo/vector-icons';
 import { CATEGORIES } from '../data/categories';
 import { COLORS, SPACING, RADIUS, TYPOGRAPHY } from '../constants/theme';
 import { useApp } from '../context/AppContext';
+import { useLanguage } from '../context/LanguageContext';
 import { ProductCategory } from '../types/product';
 
 export const CategoryList: React.FC = () => {
   const { selectedCategory, setSelectedCategory } = useApp();
+  const { language, t } = useLanguage();
 
   return (
     <View style={styles.container}>
       <View style={styles.headerRow}>
-        <Text style={styles.sectionTitle}>Categories</Text>
-        <Text style={styles.sectionSubtitle}>वर्गवारी</Text>
+        <Text style={styles.sectionTitle}>
+          {language === 'mr' ? 'उपकरण विभाग' : 'Categories'}
+        </Text>
+        <Text style={styles.sectionSubtitle}>
+          {language === 'mr' ? 'कॅटलॉग निवडा' : 'Select Category'}
+        </Text>
       </View>
 
       <ScrollView
@@ -23,6 +29,8 @@ export const CategoryList: React.FC = () => {
       >
         {CATEGORIES.map((cat) => {
           const isSelected = selectedCategory === cat.id;
+          const primaryName = language === 'mr' && cat.nameMarathi ? cat.nameMarathi : cat.name;
+          const secondaryName = language === 'mr' ? cat.name : cat.nameMarathi;
 
           return (
             <TouchableOpacity
@@ -35,7 +43,7 @@ export const CategoryList: React.FC = () => {
               activeOpacity={0.7}
               accessibilityRole="button"
               accessibilityState={{ selected: isSelected }}
-              accessibilityLabel={`${cat.name}, ${cat.itemCount} items`}
+              accessibilityLabel={`${primaryName}, ${cat.itemCount} items`}
             >
               <View
                 style={[
@@ -58,9 +66,9 @@ export const CategoryList: React.FC = () => {
                   ]}
                   numberOfLines={1}
                 >
-                  {cat.name}
+                  {primaryName}
                 </Text>
-                {cat.nameMarathi && (
+                {secondaryName && (
                   <Text
                     style={[
                       styles.marathiSub,
@@ -68,7 +76,7 @@ export const CategoryList: React.FC = () => {
                     ]}
                     numberOfLines={1}
                   >
-                    {cat.nameMarathi}
+                    {secondaryName}
                   </Text>
                 )}
               </View>
@@ -97,7 +105,7 @@ const styles = StyleSheet.create({
   },
   sectionSubtitle: {
     ...TYPOGRAPHY.caption,
-    color: COLORS.textSecondary,
+    color: COLORS.textMuted,
   },
   scrollList: {
     paddingHorizontal: SPACING.lg,
@@ -106,12 +114,10 @@ const styles = StyleSheet.create({
   categoryChip: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: SPACING.md,
-    paddingVertical: SPACING.sm,
-    borderRadius: RADIUS.full,
-    borderWidth: 1.5,
-    minHeight: 46,
-    gap: SPACING.sm,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: RADIUS.lg,
+    borderWidth: 1,
   },
   categoryChipActive: {
     backgroundColor: COLORS.primary,
@@ -124,14 +130,15 @@ const styles = StyleSheet.create({
   },
   categoryChipInactive: {
     backgroundColor: COLORS.surface,
-    borderColor: COLORS.border,
+    borderColor: COLORS.borderLight,
   },
   iconCircle: {
-    width: 30,
-    height: 30,
+    width: 32,
+    height: 32,
     borderRadius: RADIUS.full,
     alignItems: 'center',
     justifyContent: 'center',
+    marginRight: 8,
   },
   iconCircleActive: {
     backgroundColor: 'rgba(255, 255, 255, 0.25)',
@@ -140,15 +147,11 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.primaryLight,
   },
   textContainer: {
-    justifyContent: 'center',
+    flexDirection: 'column',
   },
   categoryName: {
     fontSize: 13,
     fontWeight: '700',
-  },
-  marathiSub: {
-    fontSize: 10,
-    marginTop: 1,
   },
   textActive: {
     color: COLORS.textInverse,
@@ -156,10 +159,15 @@ const styles = StyleSheet.create({
   textInactive: {
     color: COLORS.textPrimary,
   },
+  marathiSub: {
+    fontSize: 10,
+    fontWeight: '500',
+    marginTop: 1,
+  },
   marathiSubActive: {
     color: 'rgba(255, 255, 255, 0.85)',
   },
   marathiSubInactive: {
-    color: COLORS.textSecondary,
+    color: COLORS.textMuted,
   },
 });
