@@ -1,4 +1,5 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // Safe environment variable retrieval
 const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL || '';
@@ -9,17 +10,19 @@ export const isSupabaseConfigured = (): boolean => {
     supabaseUrl &&
     supabaseAnonKey &&
     !supabaseUrl.includes('your-project-ref') &&
-    !supabaseAnonKey.includes('eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9')
+    !supabaseUrl.includes('placeholder') &&
+    !supabaseAnonKey.includes('eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9') &&
+    !supabaseAnonKey.includes('placeholder')
   );
 };
 
-// Phase 1: Client prepared for authentication & live queries in Phase 2
-// Uses safe fallback dummy values when env variables are not yet populated
+// Supabase client with persistent AsyncStorage session
 export const supabase: SupabaseClient = createClient(
-  supabaseUrl || 'https://placeholder.supabase.co',
+  supabaseUrl || 'https://jagdamb-dairy-placeholder.supabase.co',
   supabaseAnonKey || 'placeholder-anon-key',
   {
     auth: {
+      storage: AsyncStorage,
       persistSession: true,
       autoRefreshToken: true,
       detectSessionInUrl: false,
