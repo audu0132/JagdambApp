@@ -2,14 +2,14 @@ import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
-import { COLORS, SPACING, RADIUS, TYPOGRAPHY } from '../constants/theme';
+import { COLORS, SPACING, RADIUS } from '../constants/theme';
 import { useApp } from '../context/AppContext';
 import { useLanguage } from '../context/LanguageContext';
 import { openWhatsAppEnquiry } from '../lib/supabaseService';
 
 export const Header: React.FC = () => {
   const { setActiveTab, getCartCount, wishlist, setSelectedProduct } = useApp();
-  const { language, toggleLanguage, t } = useLanguage();
+  const { language, toggleLanguage } = useLanguage();
   const cartCount = getCartCount();
   const wishlistCount = wishlist.length;
 
@@ -21,7 +21,7 @@ export const Header: React.FC = () => {
       else if (tab === 'account') router.push('/(tabs)/account');
       else if (tab === 'wishlist') router.push('/(tabs)/wishlist');
       else if (tab === 'cart') router.push('/(tabs)/cart');
-    } catch (e) {
+    } catch (_e) {
       // In case outside router
     }
   };

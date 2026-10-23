@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -14,7 +14,7 @@ import { router } from 'expo-router';
 import { COLORS, SPACING, RADIUS, TYPOGRAPHY } from '../constants/theme';
 import { useApp } from '../context/AppContext';
 import { useLanguage } from '../context/LanguageContext';
-import { openWhatsAppEnquiry, callBaramatiShowroom } from '../lib/supabaseService';
+import { openWhatsAppEnquiry } from '../lib/supabaseService';
 
 export const QuotationEnquiryScreen: React.FC = () => {
   const {
@@ -31,18 +31,12 @@ export const QuotationEnquiryScreen: React.FC = () => {
   const [contactNumber, setContactNumber] = useState(user.phoneNumber || '');
   const [villageOrCity, setVillageOrCity] = useState(user.location || '');
   const [herdSize, setHerdSize] = useState(user.herdSize || '');
-  const [selectedProductTitle, setSelectedProductTitle] = useState(
-    quotationTargetProduct ? quotationTargetProduct.name : 'Bulk Milk Cooler / Custom Parlour'
-  );
   const [requirements, setRequirements] = useState('');
   const [isSubmittedSuccess, setIsSubmittedSuccess] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-
-  useEffect(() => {
-    if (quotationTargetProduct) {
-      setSelectedProductTitle(quotationTargetProduct.name);
-    }
-  }, [quotationTargetProduct]);
+  const selectedProductTitle = quotationTargetProduct
+    ? quotationTargetProduct.name
+    : 'Bulk Milk Cooler / Custom Parlour';
 
   const handleSubmit = async () => {
     if (!farmerName.trim()) {

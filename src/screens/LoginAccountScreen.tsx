@@ -17,8 +17,8 @@ import { isSupabaseConfigured } from '../lib/supabase';
 import { openWhatsAppEnquiry, callBaramatiShowroom } from '../lib/supabaseService';
 
 export const LoginAccountScreen: React.FC = () => {
-  const { user, updateUserProfile, enquiries, setActiveTab } = useApp();
-  const { language, setLanguage, toggleLanguage, t } = useLanguage();
+  const { user, updateUserProfile } = useApp();
+  const { language, setLanguage, t } = useLanguage();
 
   const [isEditing, setIsEditing] = useState(false);
   const [fullName, setFullName] = useState(user.fullName);

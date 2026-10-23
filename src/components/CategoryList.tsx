@@ -9,7 +9,7 @@ import { ProductCategory } from '../types/product';
 
 export const CategoryList: React.FC = () => {
   const { selectedCategory, setSelectedCategory } = useApp();
-  const { language, t } = useLanguage();
+  const { language } = useLanguage();
 
   return (
     <View style={styles.container}>
